@@ -1,0 +1,32 @@
+/* ── Solarized Light Theme ──────────────────────────────── */
+:root {
+  --bg: #fdf6e3;
+  --surface: #eee8d5;
+  --text: #657b83;
+  --text-secondary: #839496;
+  --text-tertiary: #93a1a1;
+  --border: #ddd6c1;
+  --accent: #268bd2;
+  --accent-dim: rgba(38, 139, 210, 0.1);
+  --selection-bg: rgba(38, 139, 210, 0.15);
+  --link: #268bd2;
+  --code-bg: #eee8d5;
+  --code-border: #ddd6c1;
+  --blockquote-border: #268bd2;
+  --blockquote-bg: rgba(38, 139, 210, 0.05);
+  --table-border: #ddd6c1;
+  --table-header-bg: #eee8d5;
+  --table-stripe-bg: #fdf6e3;
+  --heading-color: #586e75;
+
+  --font-size: 16px;
+  --line-height: 1.8;
+}
+
+.cm-focused .cm-cursor { border-left-color: #268bd2 !important; }
+.md-heading-1 { color: #586e75; }
+.md-heading-2 { color: #657b83; border-bottom-color: #ddd6c1; }
+.md-inline-code { color: #cb4b16; background: #eee8d5; }
+.md-link { color: #268bd2; }
+.md-blockquote { font-style: italic; }
+.md-task-checkbox:checked { background-color: #268bd2; border-color: #268bd2; }
