@@ -6,7 +6,8 @@
 >
 > *Native macOS WYSIWYG Markdown & Plain-Text Editor*
 
-![Platform](https://img.shields.io/badge/Platform-macOS%2013.0%2B-blue?style=flat-square&logo=apple)
+![Platform](https://img.shields.io/badge/Platform-macOS%2014.0%2B-blue?style=flat-square&logo=apple)
+![Latest Release](https://img.shields.io/github/v/release/Is-Lingling/M-Notes?style=flat-square&color=blue)
 ![Swift](https://img.shields.io/badge/Swift-5.9-orange?style=flat-square&logo=swift)
 ![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
 ![Status](https://img.shields.io/badge/Status-Active%20Development-success?style=flat-square)
@@ -184,10 +185,18 @@ sequenceDiagram
 
 ---
 
+## 📥 下载安装 (Download)
+
+访问 [GitHub Releases](https://github.com/Is-Lingling/M-Notes/releases/latest) 获取最新版本的预编译安装包：
+- **`M-Notes-v1.0.0-macOS.zip`**：下载后解压，直接将 `M Notes.app` 拖入系统的「应用程序（Applications）」文件夹即可运行。
+- **运行环境**：macOS 14.0+（原生支持 Apple Silicon M系列芯片及 Intel 芯片）。
+
+---
+
 ## 🛠️ 构建与开发 (Build & Development)
 
 ### 环境要求
-- macOS 13.0 (Ventura) 或更高版本
+- macOS 14.0+
 - Xcode 15.0+
 - [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
 - Node.js 18+ (用于打包 `editor-bundle` 模块)
@@ -196,8 +205,8 @@ sequenceDiagram
 
 ```bash
 # 1. 克隆代码仓库
-git clone https://github.com/your-repo/m-notes.git
-cd m-notes
+git clone https://github.com/Is-Lingling/M-Notes.git
+cd M-Notes
 
 # 2. 生成 Xcode 工程
 xcodegen generate
