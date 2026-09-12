@@ -1,24 +1,54 @@
 # M Notes 版本更新说明 (Release Notes)
 
-> **版本**：v1.0.0 (Build 10)  
-> **适用平台**：macOS 14.0 (Sonoma) 及更高版本 (Apple Silicon & Intel)  
+> **版本**：v1.0.0 (Build 11)  
+> **适用平台**：macOS 14.0 (Sonoma) 及更高版本 (Apple Silicon & Intel) / 扩展支持 iOS, Windows, Linux, Android  
 > **发布日期**：2026年9月  
-> **发布包**：`dist/M-Notes-v1.0.0-macOS.zip` / `dist/M Notes.app`
+> **发布包**：  
+> - **macOS DMG 镜像 (推荐)**：`dist/M-Notes-v1.0.0-macOS.dmg`  
+> - **macOS 绿色压缩包**：`dist/M-Notes-v1.0.0-macOS.zip`  
+> - **macOS 应用文件**：`dist/M Notes.app`  
 
 ---
 
 ## 目录
-1. [最新重点优化 (Build 10)](#1-最新重点优化-build-10)
-2. [工作区与编辑引擎特性](#2-工作区与编辑引擎特性)
-3. [侧边栏与分类文件管理](#3-侧边栏与分类文件管理)
-4. [外观主题与液态玻璃设计](#4-外观主题与液态玻璃设计)
-5. [快捷键自定义与系统联动](#5-快捷键自定义与系统联动)
-6. [关于与 GitHub 检查更新](#6-关于与-github-检查更新)
-7. [版本历史累计更新汇总](#7-版本历史累计更新汇总)
+1. [最新重点优化 (Build 11: 多平台重构与 DMG 安装包)](#1-最新重点优化-build-11-多平台重构与-dmg-安装包)
+2. [界面与交互优化 (Build 10)](#2-界面与交互优化-build-10)
+3. [工作区与编辑引擎特性](#3-工作区与编辑引擎特性)
+4. [侧边栏与分类文件管理](#4-侧边栏与分类文件管理)
+5. [外观主题与液态玻璃设计](#5-外观主题与液态玻璃设计)
+6. [快捷键自定义与系统联动](#6-快捷键自定义与系统联动)
+7. [关于与 GitHub 检查更新](#7-关于与-github-检查更新)
+8. [多平台架构与安装指引](#8-多平台架构与安装指引)
+9. [版本历史累计更新汇总](#9-版本历史累计更新汇总)
 
 ---
 
-## 1. 最新重点优化 (Build 10)
+## 1. 最新重点优化 (Build 11: 多平台重构与 DMG 安装包)
+
+### 🚀 macOS DMG 安装包全面支持
+- **原生拖拽安装 DMG 镜像**：新增 `dist/M-Notes-v1.0.0-macOS.dmg`，采用 Apple 官方 `UDZO` 压缩技术，容量仅 4.5 MB。双击打开后可直接将 `M Notes` 拖入 `/Applications`（应用程序）文件夹完成安装，享受最地道、最舒适的 Mac 软件安装体验。
+- **双发布格式自由选择**：同时提供 `.dmg` 安装镜像与免安装开箱即用的 `.zip` 绿色压缩包，满足不同用户的分发与便携需求。
+- **自动化 DMG 构建工具**：引入原生构建脚本 `scripts/build-dmg.sh`，零第三方外部工具依赖，随打随用。
+
+### 🌐 多平台 Monorepo 架构重构与多端应用扩展
+- **`mac/` macOS 原生工程迁移**：原有 macOS 专属工程完整移入独立 `mac/` 目录，并在根目录保留相对软链接向后兼容，确保历史构建与 CI 流程 100% 顺畅执行。
+- **`shared/` 统一编辑器内核抽离**：
+  - 将 CodeMirror 6 核心、Typora 级隐形 Markdown 折叠扩展、KaTeX 数学公式、Mermaid 矢量图表渲染、Live Tables 交互表格、6 套预编译主题体系与通用图标全面抽离到 `shared/` 模块。
+  - 所有平台共享同一套编辑规范与视觉样式，保证多端文档渲染高度一致。
+- **`ios/` iOS & iPadOS 移动端工程**：
+  - 采用 SwiftUI + WKWebView 原生混合架构，支持 iPhone 与 iPad 屏幕自适应。
+  - 针对触屏场景加入专属移动端虚拟键盘格式工具栏（粗体、斜体、列表、代办、代码块、标题等），随打随选。
+- **`windows/` Windows 桌面端工程**：
+  - 基于 WebView2 现代化渲染核心与轻量宿主，支持原生本地文件打开保存、系统托盘与原生窗口装饰。
+- **`linux/` Linux 桌面端工程**：
+  - 基于 WebKitGTK 现代化原生渲染器，遵循 XDG 规范，提供标准 `m-notes.desktop` 桌面启动器与系统主题联动。
+- **`android/` Android 移动端工程**：
+  - 基于 Kotlin + AndroidX 现代化组件，深度集成 Android Storage Access Framework (SAF) 文档读写与安全隔离，支持离线全功能编辑。
+- **统一构建脚本**：新增 `scripts/package-all.sh` 脚本，支持单机快速汇总多平台产物。
+
+---
+
+## 2. 界面与交互优化 (Build 10)
 
 ### 侧边栏顶栏精简
 - **移除冗余按钮**：移除了侧边栏顶部“全文搜索”旁重复的“收起侧边栏”按钮，仅保留“全文搜索”快捷入口与“新建文件夹”按钮，头部视觉更干净协调。
@@ -116,10 +146,51 @@
 
 ---
 
-## 7. 版本历史累计更新汇总
+## 8. 多平台架构与安装指引
+
+### 1. macOS (推荐安装方式)
+- **方式 A (推荐 DMG 镜像)**：
+  - 双击打开 `dist/M-Notes-v1.0.0-macOS.dmg`。
+  - 将 `M Notes.app` 拖拽到右侧的 `Applications` 文件夹软链接即可完成安装。
+- **方式 B (ZIP 绿色包)**：
+  - 解压 `dist/M-Notes-v1.0.0-macOS.zip` 得到 `M Notes.app`。
+  - 移动到 `/Applications` 即可使用。
+
+### 2. iOS / iPadOS
+- 工程目录：`ios/`
+- 构建方式：使用 Xcode 打开 `ios/` 工程或通过 `xcodegen` 生成，连接真机或模拟器即可编译安装。内置移动端触控优化的虚拟键盘 Markdown 快捷工具栏。
+
+### 3. Windows
+- 工程目录：`windows/`
+- 构建方式：基于 WebView2 现代化渲染内核与 Tauri 跨平台框架。
+  ```bash
+  cd windows && npm install && npm run tauri build
+  ```
+- 输出产物包含 Windows MSI 安装包与轻量独立可执行文件（`.exe`）。
+
+### 4. Linux
+- 工程目录：`linux/`
+- 构建方式：基于 WebKitGTK 与 Tauri 框架。
+  ```bash
+  cd linux && npm install && npm run tauri build
+  ```
+- 输出 `.deb`、`.AppImage` 安装包，并附带标准 XDG 桌面启动项 `m-notes.desktop`。
+
+### 5. Android
+- 工程目录：`android/`
+- 构建方式：使用 Android Studio 打开 `android/` 或通过 Gradle 构建：
+  ```bash
+  cd android && ./gradlew assembleRelease
+  ```
+- 支持 Android 8.0+，深度适配系统 Storage Access Framework，支持离线全功能 Markdown 实时渲染。
+
+---
+
+## 9. 版本历史累计更新汇总
 
 | 构建版本 | 核心更新内容 |
 | :--- | :--- |
+| **Build 11** | 多平台 Monorepo 目录重构（`mac/`、`ios/`、`windows/`、`linux/`、`android/`、`shared/`）；新增 macOS 原生拖拽 DMG 镜像安装包；抽离统一编辑器核心内核；新增多端工程骨架与安装指引。 |
 | **Build 10** | 侧边栏头部精简（移除多余收起按钮）；顶栏双击就地重命名；预打包 6 套内置主题实现 0ms 极速切换；文档切换原子事务与布局优化；完整打包更新发布。 |
 | **Build 9** | 移除顶栏多余侧边栏收起按钮；修正新建文件夹按钮至侧边栏顶部；顶栏双击行内就地修改文件名；双向侧边栏状态同步。 |
 | **Build 8** | 偏好设置新增“关于”标签页；支持从 GitHub 检查更新；支持查看新版本改进说明 Markdown 模态弹窗；支持一键下载更新；菜单栏增加“检查更新…”。 |
@@ -132,11 +203,8 @@
 
 ---
 
-## 软件打包与安装使用说明
+## 软件打包与分发产物清单
 
-1. **直接运行 Release 应用**：
-   - 本地构建生成的应用程序位于项目根目录下的 `dist/M Notes.app`。
-   - 双击即可直接运行体验最新全部功能。
-2. **便携分发压缩包**：
-   - 分发压缩包位于 `dist/M-Notes-v1.0.0-macOS.zip`。
-   - 解压后将 `M Notes.app` 拖入 `/Applications`（应用程序）文件夹即可正常使用。
+1. **macOS 磁盘镜像 (DMG)**：`dist/M-Notes-v1.0.0-macOS.dmg` (4.5 MB, SHA256: `90f6248d577bfc23365644d0b708833189e66382ba18437cf784c943873176eb`)
+2. **macOS 绿色压缩包 (ZIP)**：`dist/M-Notes-v1.0.0-macOS.zip` (4.3 MB)
+3. **macOS 应用 Bundle (APP)**：`dist/M Notes.app`

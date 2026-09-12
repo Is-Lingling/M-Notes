@@ -1,0 +1,54 @@
+name: MNotesIOS
+options:
+  bundleIdPrefix: com.markdownnotes
+  deploymentTarget:
+    iOS: "16.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    PRODUCT_BUNDLE_IDENTIFIER: com.markdownnotes.ios
+    PRODUCT_NAME: M Notes
+    SWIFT_VERSION: 5.9
+    IPHONEOS_DEPLOYMENT_TARGET: "16.0"
+    TARGETED_DEVICE_FAMILY: "1,2" # iPhone and iPad
+    INFOPLIST_FILE: MNotesIOS/Info.plist
+    ENABLE_BITCODE: NO
+
+targets:
+  MNotesIOS:
+    type: application
+    platform: iOS
+    sources:
+      - path: MNotesIOS
+      - path: ../shared/editor
+        name: Editor
+        type: folder
+        buildPhase: resources
+    info:
+      path: MNotesIOS/Info.plist
+      properties:
+        CFBundleDisplayName: M Notes
+        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "1"
+        UILaunchStoryboardName: LaunchScreen
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UISupportedInterfaceOrientations~ipad:
+          - UIInterfaceOrientationPortrait
+          - UIInterfaceOrientationPortraitUpsideDown
+          - UIInterfaceOrientationLandscapeLeft
+          - UIInterfaceOrientationLandscapeRight
+        UIFileSharingEnabled: YES
+        LSSupportsOpeningDocumentsInPlace: YES
+        CFBundleDocumentTypes:
+          - CFBundleTypeName: Markdown Document
+            CFBundleTypeRole: Editor
+            LSHandlerRank: Owner
+            CFBundleTypeExtensions:
+              - md
+              - markdown
+              - txt

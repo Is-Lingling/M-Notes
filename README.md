@@ -185,37 +185,62 @@ sequenceDiagram
 
 ---
 
-## 📥 下载安装 (Download)
+## 📥 下载安装 (Download & Installation)
 
-访问 [GitHub Releases](https://github.com/Is-Lingling/M-Notes/releases/latest) 获取最新版本的预编译安装包：
-- **`M-Notes-v1.0.0-macOS.zip`**：下载后解压，直接将 `M Notes.app` 拖入系统的「应用程序（Applications）」文件夹即可运行。
-- **运行环境**：macOS 14.0+（原生支持 Apple Silicon M系列芯片及 Intel 芯片）。
+访问 [GitHub Releases](https://github.com/Is-Lingling/M-Notes/releases/latest) 获取各平台的最新预编译安装包：
+
+### 🍏 macOS 安装
+- **`M-Notes-v1.0.0-macOS.dmg` (推荐)**：下载后双击打开磁盘镜像，将 `M Notes` 图标拖拽至 `Applications` 文件夹即可完成安装。
+- **`M-Notes-v1.0.0-macOS.zip` (便携包)**：解压后直接双击运行或移至应用程序文件夹。
+- **系统要求**：macOS 14.0 (Sonoma) 或更高版本，原生支持 Apple Silicon (M1/M2/M3/M4) 及 Intel 芯片。
+
+### 🪟 Windows 安装
+- **安装包**：`M-Notes-Setup-x64.exe` / 便携版运行包。
+- **系统要求**：Windows 10 / Windows 11 (64-bit)，内置或已安装 WebView2。
+- **源码工程**：位于 [`windows/`](windows/)。
+
+### 🐧 Linux 安装
+- **AppImage (免安装推荐)**：下载 `M-Notes-x86_64.AppImage`，执行 `chmod +x M-Notes-x86_64.AppImage` 后直接双击运行。
+- **Debian / Ubuntu**：`sudo dpkg -i m-notes_1.0.0_amd64.deb`。
+- **源码工程**：位于 [`linux/`](linux/)。
+
+### 📱 移动端 (iOS & Android)
+- **iOS / iPadOS**：原生 SwiftUI + UIKit 移动端工程，位于 [`ios/`](ios/)，支持触控专用格式栏与 Files App 存储。
+- **Android**：原生 Kotlin + Material 3 + WebView 移动端工程，位于 [`android/`](android/)，支持 SAF 存储访问与离线渲染。
+
+---
+
+## 🏗️ 多平台工程结构 (Monorepo Layout)
+
+```
+M-Notes/
+├── mac/        # macOS 原生工程 (SwiftUI + AppKit + WKWebView)
+├── ios/        # iOS/iPadOS 移动端工程 (SwiftUI + 触控辅助栏)
+├── windows/    # Windows 桌面工程 (WebView2 + 本地文件 I/O)
+├── linux/      # Linux 桌面工程 (WebKitGTK + AppImage / .deb)
+├── android/    # Android 移动端工程 (Kotlin + Android WebView)
+├── shared/     # 全平台共享核心模块 (CodeMirror 6, KaTeX, Mermaid, 主题库)
+├── dist/       # 发布安装包产物 (.dmg, .zip, .apk, .exe, .deb)
+└── scripts/    # 自动化构建、测试与 DMG 打包脚本
+```
 
 ---
 
 ## 🛠️ 构建与开发 (Build & Development)
-
-### 环境要求
-- macOS 14.0+
-- Xcode 15.0+
-- [XcodeGen](https://github.com/yonaskolb/XcodeGen) (`brew install xcodegen`)
-- Node.js 18+ (用于打包 `editor-bundle` 模块)
-
-### 本地编译步骤
 
 ```bash
 # 1. 克隆代码仓库
 git clone https://github.com/Is-Lingling/M-Notes.git
 cd M-Notes
 
-# 2. 生成 Xcode 工程
-xcodegen generate
-
-# 3. 运行自动化测试套件
+# 2. 运行全套自动化测试套件
 ./scripts/test-mnotes.sh
 
-# 4. 编译 Release 包
-xcodebuild -project MarkdownNotes.xcodeproj -scheme MarkdownNotes -configuration Release build
+# 3. 构建 macOS 原生 Release 应用与 DMG 镜像
+./scripts/build-dmg.sh
+
+# 4. 一键执行全平台打包汇总
+./scripts/package-all.sh
 ```
 
 ---

@@ -1,0 +1,33 @@
+/* ── GitHub Light Theme ─────────────────────────────────── */
+:root {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --text: #24292f;
+  --text-secondary: #57606a;
+  --text-tertiary: #8c959f;
+  --border: #d0d7de;
+  --accent: #0969da;
+  --accent-dim: rgba(9, 105, 218, 0.1);
+  --selection-bg: rgba(9, 105, 218, 0.15);
+  --link: #0969da;
+  --code-bg: #f6f8fa;
+  --code-border: #d0d7de;
+  --blockquote-border: #d0d7de;
+  --blockquote-bg: transparent;
+  --table-border: #d0d7de;
+  --table-header-bg: #f6f8fa;
+  --table-stripe-bg: #ffffff;
+  --heading-color: #24292f;
+
+  --font-body: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-size: 16px;
+  --line-height: 1.75;
+  --max-width: 800px;
+}
+
+.cm-focused .cm-cursor { border-left-color: #0969da !important; }
+
+.md-heading-2 { border-bottom: 1px solid #d0d7de; }
+.md-inline-code { color: #d73a49; }
+.md-blockquote { border-left: 4px solid #d0d7de; background: transparent; font-style: normal; }

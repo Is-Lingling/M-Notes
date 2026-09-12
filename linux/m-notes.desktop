@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=M Notes
+GenericName=Markdown Editor
+Comment=Modern WYSIWYG Markdown & Plain-Text Editor
+Exec=m-notes %U
+Icon=m-notes
+Terminal=false
+Type=Application
+Categories=Office;WordProcessor;TextEditor;Development;
+MimeType=text/markdown;text/x-markdown;text/plain;
+StartupNotify=true
+StartupWMClass=m-notes
+Keywords=markdown;notes;editor;wysiwyg;katex;mermaid;
