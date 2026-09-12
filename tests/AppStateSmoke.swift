@@ -30,6 +30,51 @@ struct AppStateSmoke {
         precondition(restored.preferences.language == .english, "Language preference should persist")
         restored.removeRecentFile(missing)
         precondition(!restored.recentFiles.contains(missing))
-        print("PASS: system theme default, TXT encoding, dirty-save, source mode, recents, reading position and language persistence")
+
+        // 1. Re-opening existing files does NOT change their order
+        let orderBefore = restored.uncategorizedFiles
+        precondition(restored.openFile(txt))
+        precondition(restored.uncategorizedFiles == orderBefore, "Opening existing file should not reorder recent files")
+
+        // 2. Default save location preference
+        let customSaveDir = directory.appendingPathComponent("CustomFolder", isDirectory: true)
+        try FileManager.default.createDirectory(at: customSaveDir, withIntermediateDirectories: true)
+        restored.preferences.defaultSaveLocation = customSaveDir.path
+        precondition(restored.defaultDirectory() == customSaveDir)
+        let createdNote = restored.createNewFile()
+        precondition(createdNote != nil)
+        precondition(createdNote!.url.deletingLastPathComponent().path == customSaveDir.path, "New note should be created in defaultSaveLocation")
+
+        // 3. Category management & drag/move
+        restored.createCategory(name: "Work Notes")
+        precondition(restored.recentCategories.count == 1)
+        let categoryId = restored.recentCategories[0].id
+        precondition(restored.recentCategories[0].name == "Work Notes")
+
+        restored.moveFileToCategory(fileURL: txt, targetCategoryId: categoryId)
+        precondition(restored.recentCategories[0].fileURLs.contains(txt))
+        precondition(!restored.uncategorizedFiles.contains(txt))
+        precondition(restored.recentFiles.contains(txt), "recentFiles should remain flat union")
+
+        // Move file back to uncategorized
+        restored.moveFileToCategory(fileURL: txt, targetCategoryId: nil)
+        precondition(restored.uncategorizedFiles.contains(txt))
+        precondition(!restored.recentCategories[0].fileURLs.contains(txt))
+
+        // Delete category
+        restored.deleteCategory(id: categoryId)
+        precondition(restored.recentCategories.isEmpty)
+
+        // 4. File rename
+        precondition(restored.openFile(md))
+        let expectedRenamedURL = directory.appendingPathComponent("renamed_doc.md")
+        restored.renameFile(md, newName: "renamed_doc")
+        precondition(FileManager.default.fileExists(atPath: expectedRenamedURL.path), "Renamed file should exist on disk")
+        precondition(!FileManager.default.fileExists(atPath: md.path), "Original file should no longer exist")
+        precondition(restored.selectedFile?.url == expectedRenamedURL, "Selected file should be updated")
+        precondition(restored.recentFiles.contains(expectedRenamedURL), "Recent files should contain renamed URL")
+        precondition(!restored.recentFiles.contains(md), "Recent files should not contain old URL")
+
+        print("PASS: system theme default, TXT encoding, dirty-save, source mode, recents, reading position, language persistence, order preservation, default save location, category management and file renaming")
     }
 }

@@ -1,0 +1,76 @@
+/* ── Liquid Glass Light Theme (液态玻璃 - 浅色) ────────────────── */
+:root {
+  --bg: #f8fbff;
+  --surface: rgba(255, 255, 255, 0.72);
+  --text: #1a2233;
+  --text-secondary: #4a5568;
+  --text-tertiary: #718096;
+  --border: rgba(180, 200, 230, 0.5);
+  --accent: #0077ff;
+  --accent-dim: rgba(0, 119, 255, 0.12);
+  --selection-bg: rgba(0, 119, 255, 0.18);
+  --link: #0066ee;
+  --code-bg: rgba(240, 246, 255, 0.85);
+  --code-border: rgba(0, 119, 255, 0.16);
+  --blockquote-border: #0077ff;
+  --blockquote-bg: rgba(0, 119, 255, 0.05);
+  --table-border: rgba(180, 200, 230, 0.55);
+  --table-header-bg: rgba(230, 240, 255, 0.82);
+  --table-stripe-bg: rgba(255, 255, 255, 0.65);
+  --heading-color: #0f172a;
+  --shadow-sm: 0 4px 18px rgba(0, 80, 180, 0.06);
+
+  --font-body: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+body[data-theme="liquid-glass-light"] {
+  background: linear-gradient(180deg, #f8fbff 0%, #edf3fb 100%) fixed;
+  color: var(--text);
+}
+
+body[data-theme="liquid-glass-light"] .cm-editor .cm-content {
+  background: transparent;
+}
+
+body[data-theme="liquid-glass-light"] .md-code-block {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 119, 255, 0.18) !important;
+  box-shadow: 0 6px 20px rgba(0, 90, 220, 0.06);
+  border-radius: 10px;
+}
+
+body[data-theme="liquid-glass-light"] .md-code-header {
+  background: rgba(236, 244, 255, 0.88) !important;
+  border-bottom: 1px solid rgba(0, 119, 255, 0.14) !important;
+  backdrop-filter: blur(10px);
+}
+
+body[data-theme="liquid-glass-light"] .md-blockquote {
+  border-left: 3.5px solid #0077ff !important;
+  background: rgba(0, 119, 255, 0.05) !important;
+  backdrop-filter: blur(8px);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 119, 255, 0.04);
+}
+
+body[data-theme="liquid-glass-light"] .md-table-wrapper {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 119, 255, 0.18) !important;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 80, 200, 0.05);
+}
+
+body[data-theme="liquid-glass-light"] .cm-focused .cm-cursor {
+  border-left-color: #0077ff !important;
+}
+
+body[data-theme="liquid-glass-light"] .md-inline-code {
+  color: #0066ee;
+  background: rgba(0, 119, 255, 0.08);
+  border: 1px solid rgba(0, 119, 255, 0.15);
+  border-radius: 4px;
+}

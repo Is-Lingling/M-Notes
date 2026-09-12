@@ -62,7 +62,16 @@ struct ContentView: View {
         }
         .background(NotesColors.windowBackground)
         .onChange(of: appState.sidebarVisible) { _, visible in
-            columnVisibility = visible ? .all : .detailOnly
+            let targetVisibility: NavigationSplitViewVisibility = visible ? .all : .detailOnly
+            if columnVisibility != targetVisibility {
+                columnVisibility = targetVisibility
+            }
+        }
+        .onChange(of: columnVisibility) { _, visibility in
+            let visible = (visibility != .detailOnly)
+            if appState.sidebarVisible != visible {
+                appState.sidebarVisible = visible
+            }
         }
     }
 }
@@ -72,24 +81,32 @@ struct EditorDetailView: View {
     @EnvironmentObject var appState: AppState
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Find & Replace Bar
+        ZStack(alignment: .topTrailing) {
+            VStack(spacing: 0) {
+                // Editor
+                if appState.selectedFile != nil {
+                    EditorContainerView()
+                } else {
+                    EmptyEditorView()
+                }
+
+                // Status Bar
+                StatusBarView()
+            }
+
+            // Find & Replace Floating Bar
             if appState.findReplaceVisible {
                 FindReplaceBar()
-                    .transition(.move(edge: .top).combined(with: .opacity))
+                    .padding(.top, 12)
+                    .padding(.trailing, 20)
+                    .transition(.asymmetric(
+                        insertion: .opacity.combined(with: .scale(scale: 0.95, anchor: .topTrailing)).combined(with: .offset(y: -4)),
+                        removal: .opacity.combined(with: .scale(scale: 0.95, anchor: .topTrailing))
+                    ))
+                    .zIndex(100)
             }
-
-            // Editor
-            if appState.selectedFile != nil {
-                EditorContainerView()
-            } else {
-                EmptyEditorView()
-            }
-
-            // Status Bar
-            StatusBarView()
         }
-        .animation(.easeInOut(duration: 0.2), value: appState.findReplaceVisible)
+        .animation(.spring(response: 0.25, dampingFraction: 0.85), value: appState.findReplaceVisible)
     }
 }
 

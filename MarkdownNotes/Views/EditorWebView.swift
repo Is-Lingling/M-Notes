@@ -31,6 +31,7 @@ struct EditorContainerView: View {
 // MARK: - WKWebView Bridge (WYSIWYG Markdown Editor)
 struct EditorWebView: NSViewRepresentable {
     @EnvironmentObject var appState: AppState
+    @Environment(\.colorScheme) var colorScheme
 
     func makeCoordinator() -> Coordinator {
         Coordinator(appState: appState)
@@ -91,6 +92,13 @@ struct EditorWebView: NSViewRepresentable {
             object: nil
         )
 
+        NotificationCenter.default.addObserver(
+            context.coordinator,
+            selector: #selector(Coordinator.handlePreferencesChanged(_:)),
+            name: .preferencesDidChange,
+            object: nil
+        )
+
         return webView
     }
 
@@ -99,25 +107,32 @@ struct EditorWebView: NSViewRepresentable {
         guard context.coordinator.isEditorReady else { return }
         context.coordinator.syncDocument()
 
-        // Source mode toggle
-        let modeJS = appState.isSourceMode ? "window.editor?.setSourceMode(true)" : "window.editor?.setSourceMode(false)"
-        webView.evaluateJavaScript(modeJS, completionHandler: nil)
+        // Source mode toggle (only when changed)
+        if context.coordinator.currentIsSourceMode != appState.isSourceMode {
+            context.coordinator.currentIsSourceMode = appState.isSourceMode
+            let modeJS = appState.isSourceMode ? "window.editor?.setSourceMode(true)" : "window.editor?.setSourceMode(false)"
+            webView.evaluateJavaScript(modeJS, completionHandler: nil)
+        }
 
-        // Typewriter mode
-        let twJS = appState.isTypewriterMode ? "window.editor?.setTypewriterMode(true)" : "window.editor?.setTypewriterMode(false)"
-        webView.evaluateJavaScript(twJS, completionHandler: nil)
+        // Typewriter mode (only when changed)
+        if context.coordinator.currentIsTypewriterMode != appState.isTypewriterMode {
+            context.coordinator.currentIsTypewriterMode = appState.isTypewriterMode
+            let twJS = appState.isTypewriterMode ? "window.editor?.setTypewriterMode(true)" : "window.editor?.setTypewriterMode(false)"
+            webView.evaluateJavaScript(twJS, completionHandler: nil)
+        }
 
-        // Focus mode toggle
+        // Focus mode toggle (only when changed)
         if context.coordinator.isFocusMode != appState.isFocusMode {
             context.coordinator.isFocusMode = appState.isFocusMode
             let focusJS = appState.isFocusMode ? "window.editor?.setFocusMode(true)" : "window.editor?.setFocusMode(false)"
             webView.evaluateJavaScript(focusJS, completionHandler: nil)
         }
 
-        // Theme change
-        if context.coordinator.currentTheme != appState.preferences.theme {
-            context.coordinator.currentTheme = appState.preferences.theme
-            let themeVal = appState.preferences.theme.rawValue
+        // Theme change / Appearance change
+        let effectiveTheme = appState.effectiveTheme(for: colorScheme)
+        if context.coordinator.currentAppliedTheme != effectiveTheme {
+            context.coordinator.currentAppliedTheme = effectiveTheme
+            let themeVal = effectiveTheme.rawValue
             webView.evaluateJavaScript("window.editor?.setTheme('\(themeVal)')", completionHandler: nil)
         }
 
@@ -153,18 +168,22 @@ struct EditorWebView: NSViewRepresentable {
         var pendingDocumentID: String?
         var exporter: DocumentExporter?
         var isEditorReady = false
-        var currentTheme: EditorTheme = .system
+        var currentAppliedTheme: EditorTheme = .system
         var currentLanguage: AppLanguage = .simplifiedChinese
         var currentPreferences: Preferences
         var isFocusMode: Bool = false
+        var currentIsSourceMode: Bool = false
+        var currentIsTypewriterMode: Bool = false
         private var cancellables = Set<AnyCancellable>()
 
         init(appState: AppState) {
             self.appState = appState
-            self.currentTheme = appState.preferences.theme
+            self.currentAppliedTheme = appState.effectiveTheme(for: nil)
             self.currentLanguage = appState.preferences.language
             self.currentPreferences = appState.preferences
             self.isFocusMode = appState.isFocusMode
+            self.currentIsSourceMode = appState.isSourceMode
+            self.currentIsTypewriterMode = appState.isTypewriterMode
         }
 
         // MARK: JS → Swift Messages
@@ -200,7 +219,9 @@ struct EditorWebView: NSViewRepresentable {
                     syncDocument()
                     webView?.evaluateJavaScript("window.editor?.setSourceMode(\(appState.isSourceMode)); window.editor?.setTypewriterMode(\(appState.isTypewriterMode))", completionHandler: nil)
                     // Apply initial theme
-                    let themeVal = appState.preferences.theme.rawValue
+                    let effectiveTheme = appState.effectiveTheme(for: nil)
+                    currentAppliedTheme = effectiveTheme
+                    let themeVal = effectiveTheme.rawValue
                     let language = appState.preferences.language.rawValue
                     webView?.evaluateJavaScript("window.editor?.setTheme('\(themeVal)'); window.editor?.setLanguage('\(language)')", completionHandler: nil)
                     applyEditorPreferences()
@@ -232,7 +253,8 @@ struct EditorWebView: NSViewRepresentable {
                     "showLineNumbers": appState.preferences.showLineNumbers,
                     "spellCheck": appState.preferences.spellCheck,
                     "smartQuotes": appState.preferences.smartQuotes,
-                    "smartDashes": appState.preferences.smartDashes
+                    "smartDashes": appState.preferences.smartDashes,
+                    "bottomPadding": appState.preferences.bottomPadding
                   ]), let json = String(data: data, encoding: .utf8) else { return }
             webView.evaluateJavaScript("window.editor?.setPreferences(\(json))", completionHandler: nil)
         }
@@ -309,6 +331,25 @@ struct EditorWebView: NSViewRepresentable {
                 .replacingOccurrences(of: "`", with: "\\`")
                 .replacingOccurrences(of: "$", with: "\\$")
             webView?.evaluateJavaScript("window.editor?.setContent(`\(escaped)`)", completionHandler: nil)
+        }
+
+        // MARK: Preferences change handler (instant theme & styling sync)
+        @objc func handlePreferencesChanged(_ notification: Notification) {
+            guard isEditorReady else { return }
+            let effectiveTheme = appState.effectiveTheme(for: nil)
+            if currentAppliedTheme != effectiveTheme {
+                currentAppliedTheme = effectiveTheme
+                let themeVal = effectiveTheme.rawValue
+                webView?.evaluateJavaScript("window.editor?.setTheme('\(themeVal)')", completionHandler: nil)
+            }
+            if currentLanguage != appState.preferences.language {
+                currentLanguage = appState.preferences.language
+                webView?.evaluateJavaScript("window.editor?.setLanguage('\(appState.preferences.language.rawValue)')", completionHandler: nil)
+            }
+            if currentPreferences != appState.preferences {
+                currentPreferences = appState.preferences
+                applyEditorPreferences()
+            }
         }
 
         private func chooseImage() {

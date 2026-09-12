@@ -32,6 +32,7 @@
   --letter-spacing: -0.01em;
   --paragraph-spacing: 0.85em;
   --max-width: 860px; /* 纸张排版美学：居中自适应宽度 860px */
+  --bottom-padding: 25vh;
 }
 
 /* ── Dark Mode ── */
@@ -105,7 +106,7 @@ html, body {
   max-width: var(--max-width);
   width: 100%;
   margin: 0 auto;
-  padding: 48px max(4vw, 32px) 45vh;
+  padding: 48px max(4vw, 32px) var(--bottom-padding, 25vh);
   caret-color: var(--accent);
   word-break: break-word;
   overflow-wrap: break-word;
@@ -114,6 +115,7 @@ html, body {
 .cm-line {
   word-break: break-word;
   overflow-wrap: break-word;
+  padding: 0 4px;
 }
 
 .cm-focused .cm-cursor {
@@ -773,3 +775,10 @@ html, body {
 .cm-block-selected { box-shadow: inset 0 0 0 2px var(--accent); }
 .cm-code-block-header-line.cm-block-selected { background: var(--accent-dim) !important; }
 .cm-code-header-widget { cursor: default; }
+
+@media print {
+  .cm-editor .cm-content {
+    padding-bottom: 0 !important;
+  }
+}
+

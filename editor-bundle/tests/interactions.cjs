@@ -100,7 +100,24 @@ const path = require('node:path');
   assert(await page.locator('.cm-table-scroll').evaluate(el => el.scrollWidth > el.clientWidth));
   await page.emulateMedia({ colorScheme: 'dark' });
   await page.screenshot({ path: '/tmp/typora-table-dark.png', fullPage: true });
+
+  // Test instant built-in theme switching
+  await page.evaluate(() => editor.setTheme('dracula'));
+  assert.equal(await page.evaluate(() => document.body.dataset.theme), 'dracula');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--accent').trim()), '#bd93f9');
+
+  await page.evaluate(() => editor.setTheme('liquid-glass-dark'));
+  assert.equal(await page.evaluate(() => document.body.dataset.theme), 'liquid-glass-dark');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--accent').trim()), '#38bdf8');
+
+  await page.evaluate(() => editor.setTheme('liquid-glass-light'));
+  assert.equal(await page.evaluate(() => document.body.dataset.theme), 'liquid-glass-light');
+  assert.equal(await page.evaluate(() => getComputedStyle(document.body).getPropertyValue('--accent').trim()), '#0077ff');
+
+  await page.evaluate(() => editor.setTheme('system'));
+  assert.equal(await page.evaluate(() => Boolean(document.body.dataset.theme)), false);
+
   assert.deepEqual(errors, []);
-  console.log('PASS: compact header, stable checkbox, editable rule, missing-image card, live tables, row/column actions, shortcuts, undo/redo, Tab and source mode');
+  console.log('PASS: compact header, stable checkbox, editable rule, missing-image card, live tables, row/column actions, shortcuts, undo/redo, Tab, source mode, and instant theme switching');
   await browser.close();
 })().catch(error => { console.error(error); process.exit(1); });

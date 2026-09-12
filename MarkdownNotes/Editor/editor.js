@@ -43,6 +43,7 @@ const md = window.markdownit({
   .use(window.markdownitTaskLists, { enabled: true, label: true })
   .use(markdownItMath)
   .use(markdownItMermaid);
+md.disable(["lheading"]);
 
 // ── math plugin ──
 function markdownItMath(md) {
@@ -1401,7 +1402,7 @@ function createEditor(content) {
     extensions: [
       // Core
       history(),
-      // Native selection paints on top of code backgrounds and follows actual text geometry.
+      drawSelection(),
       dropCursor(),
       EditorState.allowMultipleSelections.of(true),
       highlightSpecialChars(),
@@ -1436,7 +1437,7 @@ function createEditor(content) {
       typoraLivePreviewPlugin,
 
       // Language & highlighting
-      languageComp.of(markdown({ base: markdownLanguage, codeLanguages: CM.languages })),
+      languageComp.of(markdownLanguageSupport()),
       syntaxHighlighting(markdownHighlight),
       syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
 
@@ -1900,7 +1901,8 @@ function handleScroll() {
   readingTimer = setTimeout(reportReadingPosition, 120);
 }
 function markdownLanguageSupport() {
-  return markdown({ base: markdownLanguage, codeLanguages: CM.languages });
+  const baseParser = markdownLanguage.parser.configure({ remove: ["SetextHeading"] });
+  return markdown({ base: { parser: baseParser }, codeLanguages: CM.languages });
 }
 
 // ============================================================
@@ -1928,25 +1930,58 @@ window.editor = {
   },
 
   openDocument(markdown, documentID, position = {}, plainText = false) {
-    if (this._view && this.documentID && this.documentID !== documentID) reportReadingPosition();
+    if (this._view && this.documentID && this.documentID !== documentID) {
+      const v = this._view;
+      swift.send("scrollInfo", {
+        documentID: this.documentID,
+        anchor: v.state.selection.main.head,
+        scrollTop: v.scrollDOM.scrollTop,
+        viewportWidth: v.scrollDOM.clientWidth
+      });
+    }
     this.documentID = documentID;
     this.plainText = plainText;
     editorState.isSourceMode = plainText;
-    this._view.dispatch({ effects: languageComp.reconfigure(plainText ? [] : markdownLanguageSupport()) });
-    this.setContent(markdown);
-    this.setSourceMode(plainText);
-    const anchor = Math.min(position.anchor || 0, this._view.state.doc.length);
-    this._view.dispatch({ selection: { anchor }, effects: revealLine.of(anchor) });
+    document.body.classList.toggle("source-mode", plainText);
+
+    if (!this._view) {
+      editorState.content = markdown;
+      return;
+    }
+
+    clearTimeout(updateTimer);
+    pendingImages.clear();
+    this.loadingContent = true;
+
+    try {
+      const curLen = this._view.state.doc.length;
+      const anchor = Math.min(position.anchor ?? 0, markdown.length);
+      const effects = [
+        languageComp.reconfigure(plainText ? [] : markdownLanguageSupport()),
+        lineNumbersComp.reconfigure(
+          editorState.preferences.showLineNumbers ? [lineNumbers(), highlightActiveLineGutter()] : []
+        ),
+        revealLine.of(anchor)
+      ];
+
+      this._view.dispatch({
+        changes: { from: 0, to: curLen, insert: markdown },
+        selection: { anchor },
+        effects: effects
+      });
+    } finally {
+      this.loadingContent = false;
+    }
+
     const view = this._view;
     requestAnimationFrame(() => {
       if (this.documentID !== documentID) return;
-      view.dispatch({ effects: EditorView.scrollIntoView(Math.min(position.topPosition || 0, view.state.doc.length), { y: "start", yMargin: 0 }) });
-      requestAnimationFrame(() => {
-        if (this.documentID !== documentID) return;
-        if (position.scrollTop != null && position.viewportWidth === view.scrollDOM.clientWidth) view.scrollDOM.scrollTop = position.scrollTop;
-        else view.scrollDOM.scrollTop += position.offset || 0;
-        view.requestMeasure();
-      });
+      if (position.scrollTop != null) {
+        view.scrollDOM.scrollTop = position.scrollTop;
+      } else if (position.anchor != null) {
+        view.dispatch({ effects: EditorView.scrollIntoView(Math.min(position.anchor, view.state.doc.length), { y: "center" }) });
+      }
+      view.requestMeasure();
     });
   },
 
@@ -2048,27 +2083,50 @@ a { color: #007AFF; }
     document.getElementById("editor-root").classList.toggle("focus-mode", enabled);
   },
 
-  // ── Load custom CSS theme ──
+  // ── Load custom CSS theme (instant 0ms switching) ──
   setTheme(themeName) {
     const customEl = document.getElementById("custom-theme");
-    if (!customEl) return;
 
-    const appearance = ["notes-dark", "github-dark", "dracula"].includes(themeName) ? "dark"
-      : (["notes-light", "github-light", "solarized"].includes(themeName) ? "light" : "");
+    const appearance = ["notes-dark", "github-dark", "dracula", "liquid-glass-dark"].includes(themeName) ? "dark"
+      : (["notes-light", "github-light", "solarized", "liquid-glass-light"].includes(themeName) ? "light" : "");
     document.documentElement.style.colorScheme = appearance;
+
+    // Toggle highlight.js theme instantly
+    const isDark = appearance === "dark" || (themeName === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+    const hljsLight = document.getElementById("hljs-light-theme");
+    const hljsDark = document.getElementById("hljs-dark-theme");
+    if (hljsLight) hljsLight.disabled = isDark;
+    if (hljsDark) hljsDark.disabled = !isDark;
 
     if (!themeName || themeName === "system" || themeName === "notes-light" || themeName === "notes-dark") {
       // Use built-in Notes theme (editor.css handles dark mode)
-      customEl.disabled = true;
-      customEl.href = "";
+      if (customEl) {
+        customEl.disabled = true;
+        customEl.href = "";
+      }
+      document.documentElement.removeAttribute("data-theme");
       document.body.removeAttribute("data-theme");
       return;
     }
 
-    // Load from themes/ directory
-    const themeURL = `themes/${themeName}.css`;
-    customEl.href = themeURL;
-    customEl.disabled = false;
+    const builtInThemes = ["liquid-glass-light", "liquid-glass-dark", "dracula", "solarized", "github-light", "github-dark"];
+    if (builtInThemes.includes(themeName)) {
+      if (customEl) {
+        customEl.disabled = true;
+        customEl.href = "";
+      }
+      document.documentElement.setAttribute("data-theme", themeName);
+      document.body.setAttribute("data-theme", themeName);
+      return;
+    }
+
+    // Load from themes/ directory for user external custom themes
+    if (customEl) {
+      const themeURL = `themes/${themeName}.css`;
+      customEl.href = themeURL;
+      customEl.disabled = false;
+    }
+    document.documentElement.setAttribute("data-theme", themeName);
     document.body.setAttribute("data-theme", themeName);
   },
 
@@ -2078,6 +2136,7 @@ a { color: #007AFF; }
     if (Number.isFinite(preferences.fontSize)) root.style.setProperty("--font-size", `${preferences.fontSize}px`);
     if (Number.isFinite(preferences.lineHeight)) root.style.setProperty("--line-height", String(preferences.lineHeight));
     if (Number.isFinite(preferences.maxWidth)) root.style.setProperty("--max-width", `${preferences.maxWidth}px`);
+    if (Number.isFinite(preferences.bottomPadding)) root.style.setProperty("--bottom-padding", `${preferences.bottomPadding}vh`);
     if (typeof preferences.fontFamily === "string" && preferences.fontFamily.trim()) {
       root.style.setProperty("--font-body", preferences.fontFamily);
     }
@@ -2154,10 +2213,46 @@ a { color: #007AFF; }
       case "link": insertLink(view, from, to, selectedText); break;
       case "image": insertImage(view); break;
       case "hr": insertHR(view, from); break;
+      case "findNext":
+        if (CM.search?.findNext) CM.search.findNext(view);
+        break;
+      case "findPrev":
+        if (CM.search?.findPrevious) CM.search.findPrevious(view);
+        break;
+      case "replace":
+      case "replaceNext":
+        if (CM.search?.replaceNext) CM.search.replaceNext(view);
+        break;
+      case "replaceAll":
+        if (CM.search?.replaceAll) CM.search.replaceAll(view);
+        break;
       default:
-        if (command.startsWith("find:")) {
+        if (command.startsWith("findWithOptions:")) {
+          try {
+            const opts = JSON.parse(command.slice("findWithOptions:".length));
+            setSearchQuery(view, opts.query, opts.caseSensitive, opts.regexp, opts.replace);
+          } catch (_) {}
+        } else if (command.startsWith("find:")) {
           const query = command.slice(5);
           highlightFind(view, query);
+        } else if (command.startsWith("replace:")) {
+          const rest = command.slice(8);
+          const sep = rest.indexOf(":");
+          if (sep !== -1) {
+            const q = rest.slice(0, sep);
+            const r = rest.slice(sep + 1);
+            setSearchQuery(view, q, false, false, r);
+            if (CM.search?.replaceNext) CM.search.replaceNext(view);
+          }
+        } else if (command.startsWith("replaceAll:")) {
+          const rest = command.slice(11);
+          const sep = rest.indexOf(":");
+          if (sep !== -1) {
+            const q = rest.slice(0, sep);
+            const r = rest.slice(sep + 1);
+            setSearchQuery(view, q, false, false, r);
+            if (CM.search?.replaceAll) CM.search.replaceAll(view);
+          }
         } else if (command.startsWith("scrollToHeading:")) {
           const id = command.slice("scrollToHeading:".length);
           scrollToHeading(view, id);
@@ -2355,10 +2450,26 @@ function insertHR(view, from) {
 // ============================================================
 // Find / Highlight
 // ============================================================
+function setSearchQuery(view, search, caseSensitive = false, regexp = false, replace = "") {
+  if (!CM.search?.SearchQuery || !CM.search?.setSearchQuery) return;
+  try {
+    const q = new CM.search.SearchQuery({
+      search: search || "",
+      caseSensitive: !!caseSensitive,
+      regexp: !!regexp,
+      replace: replace || ""
+    });
+    view.dispatch({ effects: CM.search.setSearchQuery.of(q) });
+    if (search) {
+      CM.search.findNext(view);
+    }
+  } catch (err) {
+    console.error("setSearchQuery error:", err);
+  }
+}
+
 function highlightFind(view, query) {
-  // Use CodeMirror's built-in search
-  if (!query) return;
-  // We trigger the CM search via the openSearchPanel command if needed
+  setSearchQuery(view, query, false, false);
 }
 
 function scrollToHeading(view, headingId) {

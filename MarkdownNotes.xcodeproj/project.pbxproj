@@ -24,6 +24,7 @@
 		BA10BFDB36D556490B2DC3F0 /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = D5618F51ACF869D54E07C660 /* Localizable.strings */; };
 		E6D44A4A7AB9381E2A62F30A /* ToolbarAndPanels.swift in Sources */ = {isa = PBXBuildFile; fileRef = BA78BD82EB24189E7355A975 /* ToolbarAndPanels.swift */; };
 		F55AF49BD4857DAA7F792D1F /* MarkdownNotesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A773665E26EED9B36BE0BFE /* MarkdownNotesApp.swift */; };
+		7C1A2B3C4D5E6F708192A0B1 /* UpdateChecker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C1A2B3C4D5E6F708192A0B2 /* UpdateChecker.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,7 @@
 		CD6069590FE5A060014F115B /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D0A019E9C38E969D3CB43E6E /* MarkdownNotes.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = MarkdownNotes.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		DEDE0C9CC6AB81DA11F1BD90 /* Editor */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Editor; path = MarkdownNotes/Editor; sourceTree = SOURCE_ROOT; };
+		7C1A2B3C4D5E6F708192A0B2 /* UpdateChecker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UpdateChecker.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -127,6 +129,7 @@
 				B1AA2B865466EA9052F4F69D /* DocumentExporter.swift */,
 				04DAD388658207562B63CC9B /* EditorResources.swift */,
 				02573682E10BA6AA6CB76E30 /* FSEventWatcher.swift */,
+				7C1A2B3C4D5E6F708192A0B2 /* UpdateChecker.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -218,6 +221,7 @@
 				315DF79FB423B501316FEC92 /* OutlineColumnView.swift in Sources */,
 				1EB55AC0BB7B5B2A6AFCEEA0 /* SidebarView.swift in Sources */,
 				E6D44A4A7AB9381E2A62F30A /* ToolbarAndPanels.swift in Sources */,
+				7C1A2B3C4D5E6F708192A0B1 /* UpdateChecker.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

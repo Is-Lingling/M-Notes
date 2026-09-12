@@ -2,6 +2,19 @@ import SwiftUI
 import Combine
 import UniformTypeIdentifiers
 
+// MARK: - Recent Files Category
+struct RecentCategory: Identifiable, Codable, Equatable {
+    var id: UUID = UUID()
+    var name: String
+    var filePaths: [String] = []
+    var isExpanded: Bool = true
+
+    var fileURLs: [URL] {
+        get { filePaths.map { URL(fileURLWithPath: $0) } }
+        set { filePaths = newValue.map(\.path) }
+    }
+}
+
 // MARK: - App State
 @MainActor
 class AppState: ObservableObject {
@@ -24,6 +37,7 @@ class AppState: ObservableObject {
 
     // MARK: Search
     @Published var findReplaceVisible: Bool = false
+    @Published var showReplaceInFindBar: Bool = false
     @Published var findText: String = ""
     @Published var replaceText: String = ""
     @Published var globalSearchVisible = false
@@ -34,6 +48,10 @@ class AppState: ObservableObject {
     // MARK: File System
     @Published var rootFolders: [FileNode] = []
     @Published var recentFiles: [URL] = []
+    @Published var recentCategories: [RecentCategory] = []
+    @Published var uncategorizedFiles: [URL] = []
+    @Published var updateChecker = UpdateChecker.shared
+    @Published var selectedPreferencesTab: String = "general"
 
     // MARK: Preferences
     @Published var preferences = Preferences() {
@@ -75,6 +93,28 @@ class AppState: ObservableObject {
                 self.openWelcomeGuide()
             }
         }
+
+        if preferences.autoCheckForUpdates {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.updateChecker.checkForUpdates(manual: false)
+            }
+        }
+    }
+
+    // MARK: - Update & Preferences Navigation
+    func checkForUpdates(manual: Bool = true) {
+        openPreferences(tab: "about")
+        updateChecker.checkForUpdates(manual: manual)
+    }
+
+    func openPreferences(tab: String = "general") {
+        selectedPreferencesTab = tab
+        if #available(macOS 14.0, *) {
+            NSApp.sendAction(Selector(("showSettingsWindow:")), to: nil, from: nil)
+        } else {
+            NSApp.sendAction(Selector(("showPreferencesWindow:")), to: nil, from: nil)
+        }
+        NSApp.activate(ignoringOtherApps: true)
     }
 
     // MARK: - Welcome Guide
@@ -893,8 +933,19 @@ Thank you for choosing **M Notes**! Happy writing!
         defaults.set(positions, forKey: "readingPositions")
     }
 
-    func createNewFile(in folder: FileNode?) -> FileNode? {
-        let dir = folder?.url ?? FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    func defaultDirectory() -> URL {
+        if !preferences.defaultSaveLocation.isEmpty {
+            let customURL = URL(fileURLWithPath: preferences.defaultSaveLocation)
+            var isDir: ObjCBool = false
+            if FileManager.default.fileExists(atPath: customURL.path, isDirectory: &isDir), isDir.boolValue {
+                return customURL
+            }
+        }
+        return FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+    }
+
+    func createNewFile(in folder: FileNode? = nil) -> FileNode? {
+        let dir = folder?.url ?? defaultDirectory()
         var name = "Untitled.md"
         var idx = 1
         while FileManager.default.fileExists(atPath: dir.appendingPathComponent(name).path) {
@@ -1049,19 +1100,77 @@ Thank you for choosing **M Notes**! Happy writing!
 
     private func loadRecentFiles() {
         let paths = defaults.stringArray(forKey: "recentFiles") ?? []
-        recentFiles = paths.compactMap { URL(fileURLWithPath: $0) }
+        let rawRecentURLs = paths.compactMap { URL(fileURLWithPath: $0) }
+
+        if let catData = defaults.data(forKey: "recentCategories"),
+           let decodedCats = try? JSONDecoder().decode([RecentCategory].self, from: catData) {
+            recentCategories = decodedCats
+        } else {
+            recentCategories = []
+        }
+
+        if let uncatPaths = defaults.stringArray(forKey: "uncategorizedFiles") {
+            uncategorizedFiles = uncatPaths.compactMap { URL(fileURLWithPath: $0) }
+        } else {
+            let categoryPaths = Set(recentCategories.flatMap { $0.filePaths })
+            uncategorizedFiles = rawRecentURLs.filter { !categoryPaths.contains($0.path) }
+        }
+
+        syncRecentFiles()
+    }
+
+    func syncRecentFiles() {
+        var allPaths: [String] = []
+        var seen = Set<String>()
+
+        for cat in recentCategories {
+            for path in cat.filePaths {
+                if !seen.contains(path) {
+                    seen.insert(path)
+                    allPaths.append(path)
+                }
+            }
+        }
+        for url in uncategorizedFiles {
+            if !seen.contains(url.path) {
+                seen.insert(url.path)
+                allPaths.append(url.path)
+            }
+        }
+        recentFiles = allPaths.map { URL(fileURLWithPath: $0) }
+    }
+
+    func saveRecentFilesAndCategories() {
+        syncRecentFiles()
+        defaults.set(recentFiles.map(\.path), forKey: "recentFiles")
+        defaults.set(uncategorizedFiles.map(\.path), forKey: "uncategorizedFiles")
+        if let catData = try? JSONEncoder().encode(recentCategories) {
+            defaults.set(catData, forKey: "recentCategories")
+        }
     }
 
     private func addToRecent(_ url: URL) {
-        recentFiles.removeAll { $0 == url }
-        recentFiles.insert(url, at: 0)
-        if recentFiles.count > 20 { recentFiles = Array(recentFiles.prefix(20)) }
-        defaults.set(recentFiles.map(\.path), forKey: "recentFiles")
+        let alreadyInUncat = uncategorizedFiles.contains(url)
+        let alreadyInCats = recentCategories.contains(where: { $0.filePaths.contains(url.path) })
+
+        if alreadyInUncat || alreadyInCats {
+            // Requirement: clicking to open other files does not change order
+            return
+        }
+
+        uncategorizedFiles.insert(url, at: 0)
+        if uncategorizedFiles.count > 50 {
+            uncategorizedFiles = Array(uncategorizedFiles.prefix(50))
+        }
+        saveRecentFilesAndCategories()
     }
 
     func removeRecentFile(_ url: URL) {
-        recentFiles.removeAll { $0 == url }
-        defaults.set(recentFiles.map(\.path), forKey: "recentFiles")
+        uncategorizedFiles.removeAll { $0 == url }
+        for idx in recentCategories.indices {
+            recentCategories[idx].filePaths.removeAll { $0 == url.path }
+        }
+        saveRecentFilesAndCategories()
     }
 
     func deleteRecentFile(_ url: URL) {
@@ -1103,6 +1212,238 @@ Thank you for choosing **M Notes**! Happy writing!
         }
     }
 
+    // MARK: - File Renaming
+    func renameFile(_ url: URL, newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+
+        let finalName: String
+        if (trimmed as NSString).pathExtension.isEmpty && !url.pathExtension.isEmpty {
+            finalName = trimmed + "." + url.pathExtension
+        } else {
+            finalName = trimmed
+        }
+
+        guard finalName != url.lastPathComponent else { return }
+
+        let parentDir = url.deletingLastPathComponent()
+        let destinationURL = parentDir.appendingPathComponent(finalName)
+
+        if FileManager.default.fileExists(atPath: destinationURL.path) {
+            let isEnglish = preferences.language == .english
+            let alert = NSAlert()
+            alert.messageText = isEnglish ? "File Already Exists" : "文件已存在"
+            alert.informativeText = isEnglish
+                ? "A file named \"\(finalName)\" already exists in this folder."
+                : "当前目录下已存在名为“\(finalName)”的文件。"
+            alert.runModal()
+            return
+        }
+
+        do {
+            try FileManager.default.moveItem(at: url, to: destinationURL)
+        } catch {
+            showError(preferences.language == .english ? "Rename Failed" : "重命名失败", error: error)
+            return
+        }
+
+        var positions = defaults.dictionary(forKey: "readingPositions") ?? [:]
+        if let existingPos = positions[url.path] {
+            positions.removeValue(forKey: url.path)
+            positions[destinationURL.path] = existingPos
+            defaults.set(positions, forKey: "readingPositions")
+        }
+
+        if let idx = uncategorizedFiles.firstIndex(of: url) {
+            uncategorizedFiles[idx] = destinationURL
+        }
+
+        for catIdx in recentCategories.indices {
+            if let fIdx = recentCategories[catIdx].filePaths.firstIndex(of: url.path) {
+                recentCategories[catIdx].filePaths[fIdx] = destinationURL.path
+            }
+        }
+
+        saveRecentFilesAndCategories()
+
+        if selectedFile?.url == url {
+            selectedFile = FileNode(url: destinationURL)
+        }
+
+        NotificationCenter.default.post(name: .fileSystemDidChange, object: destinationURL)
+    }
+
+    func promptRenameFile(_ url: URL) {
+        let alert = NSAlert()
+        let isEnglish = preferences.language == .english
+        alert.messageText = isEnglish ? "Rename File" : "重命名文件"
+        alert.informativeText = isEnglish
+            ? "Enter a new name for \"\(url.lastPathComponent)\":"
+            : "请输入“\(url.lastPathComponent)”的新文件名："
+        alert.addButton(withTitle: isEnglish ? "Rename" : "重命名")
+        let cancelBtn = alert.addButton(withTitle: isEnglish ? "Cancel" : "取消")
+        cancelBtn.keyEquivalent = "\u{1b}"
+
+        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 280, height: 24))
+        input.stringValue = url.deletingPathExtension().lastPathComponent
+        alert.accessoryView = input
+        alert.window.initialFirstResponder = input
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            renameFile(url, newName: input.stringValue)
+        }
+    }
+
+    // MARK: - Category Management
+    func createCategory(name: String) {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        let newCat = RecentCategory(name: trimmed)
+        recentCategories.append(newCat)
+        saveRecentFilesAndCategories()
+    }
+
+    func promptCreateCategory() {
+        let alert = NSAlert()
+        let isEnglish = preferences.language == .english
+        alert.messageText = isEnglish ? "New Folder" : "新建文件夹"
+        alert.informativeText = isEnglish ? "Enter folder name:" : "输入文件夹名称："
+        alert.addButton(withTitle: isEnglish ? "Create" : "创建")
+        let cancelBtn = alert.addButton(withTitle: isEnglish ? "Cancel" : "取消")
+        cancelBtn.keyEquivalent = "\u{1b}"
+
+        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        input.stringValue = isEnglish ? "New Folder" : "新建文件夹"
+        alert.accessoryView = input
+        alert.window.initialFirstResponder = input
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            createCategory(name: input.stringValue)
+        }
+    }
+
+    func deleteCategory(id: UUID) {
+        guard let cat = recentCategories.first(where: { $0.id == id }) else { return }
+        for url in cat.fileURLs {
+            if !uncategorizedFiles.contains(url) {
+                uncategorizedFiles.append(url)
+            }
+        }
+        recentCategories.removeAll { $0.id == id }
+        saveRecentFilesAndCategories()
+    }
+
+    func confirmAndDeleteCategory(id: UUID) {
+        guard let cat = recentCategories.first(where: { $0.id == id }) else { return }
+        let alert = NSAlert()
+        let isEnglish = preferences.language == .english
+        alert.messageText = isEnglish ? "Delete Folder \"\(cat.name)\"?" : "确认删除文件夹“\(cat.name)”？"
+        alert.informativeText = isEnglish
+            ? "Files in this folder will be moved to the uncategorized list. No local files will be deleted."
+            : "文件夹内的文件将移回未分类列表，不会删除本地文件。"
+        alert.addButton(withTitle: isEnglish ? "Delete" : "删除")
+        let cancelBtn = alert.addButton(withTitle: isEnglish ? "Cancel" : "取消")
+        cancelBtn.keyEquivalent = "\u{1b}"
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            deleteCategory(id: id)
+        }
+    }
+
+    func renameCategory(id: UUID, newName: String) {
+        let trimmed = newName.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let idx = recentCategories.firstIndex(where: { $0.id == id }) else { return }
+        recentCategories[idx].name = trimmed
+        saveRecentFilesAndCategories()
+    }
+
+    func promptRenameCategory(id: UUID) {
+        guard let cat = recentCategories.first(where: { $0.id == id }) else { return }
+        let alert = NSAlert()
+        let isEnglish = preferences.language == .english
+        alert.messageText = isEnglish ? "Rename Folder" : "重命名文件夹"
+        alert.informativeText = isEnglish ? "Enter new folder name:" : "输入新文件夹名称："
+        alert.addButton(withTitle: isEnglish ? "Rename" : "重命名")
+        let cancelBtn = alert.addButton(withTitle: isEnglish ? "Cancel" : "取消")
+        cancelBtn.keyEquivalent = "\u{1b}"
+
+        let input = NSTextField(frame: NSRect(x: 0, y: 0, width: 260, height: 24))
+        input.stringValue = cat.name
+        alert.accessoryView = input
+        alert.window.initialFirstResponder = input
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            renameCategory(id: id, newName: input.stringValue)
+        }
+    }
+
+    func moveFileToCategory(fileURL: URL, targetCategoryId: UUID?) {
+        uncategorizedFiles.removeAll { $0 == fileURL }
+        for idx in recentCategories.indices {
+            recentCategories[idx].filePaths.removeAll { $0 == fileURL.path }
+        }
+
+        if let targetId = targetCategoryId, let catIdx = recentCategories.firstIndex(where: { $0.id == targetId }) {
+            if !recentCategories[catIdx].filePaths.contains(fileURL.path) {
+                recentCategories[catIdx].filePaths.append(fileURL.path)
+            }
+        } else {
+            if !uncategorizedFiles.contains(fileURL) {
+                uncategorizedFiles.append(fileURL)
+            }
+        }
+
+        saveRecentFilesAndCategories()
+    }
+
+    func reorderFile(dragged: URL, target: URL) {
+        guard dragged != target else { return }
+
+        // Both in uncategorizedFiles
+        if let fromIdx = uncategorizedFiles.firstIndex(of: dragged),
+           let toIdx = uncategorizedFiles.firstIndex(of: target) {
+            uncategorizedFiles.remove(at: fromIdx)
+            uncategorizedFiles.insert(dragged, at: toIdx)
+            saveRecentFilesAndCategories()
+            return
+        }
+
+        // Both in the same category
+        for catIdx in recentCategories.indices {
+            if let fromIdx = recentCategories[catIdx].filePaths.firstIndex(of: dragged.path),
+               let toIdx = recentCategories[catIdx].filePaths.firstIndex(of: target.path) {
+                recentCategories[catIdx].filePaths.remove(at: fromIdx)
+                recentCategories[catIdx].filePaths.insert(dragged.path, at: toIdx)
+                saveRecentFilesAndCategories()
+                return
+            }
+        }
+
+        // Dragged from uncategorized to a category's file
+        for catIdx in recentCategories.indices {
+            if let toIdx = recentCategories[catIdx].filePaths.firstIndex(of: target.path) {
+                uncategorizedFiles.removeAll { $0 == dragged }
+                for otherIdx in recentCategories.indices {
+                    recentCategories[otherIdx].filePaths.removeAll { $0 == dragged.path }
+                }
+                recentCategories[catIdx].filePaths.insert(dragged.path, at: toIdx)
+                saveRecentFilesAndCategories()
+                return
+            }
+        }
+
+        // Dragged from a category to uncategorized target
+        if let toIdx = uncategorizedFiles.firstIndex(of: target) {
+            for otherIdx in recentCategories.indices {
+                recentCategories[otherIdx].filePaths.removeAll { $0 == dragged.path }
+            }
+            uncategorizedFiles.removeAll { $0 == dragged }
+            uncategorizedFiles.insert(dragged, at: toIdx)
+            saveRecentFilesAndCategories()
+            return
+        }
+    }
+
     private func loadRootFolders() {
         let paths = defaults.stringArray(forKey: "rootFolders") ?? []
         rootFolders = paths.compactMap { URL(fileURLWithPath: $0) }
@@ -1112,6 +1453,78 @@ Thank you for choosing **M Notes**! Happy writing!
 
     private func saveRootFolders() {
         defaults.set(rootFolders.map(\.url.path), forKey: "rootFolders")
+    }
+
+    // MARK: - Custom Shortcuts
+    func shortcut(for id: String, defaultKey: String, defaultModifiers: [String]) -> ShortcutDefinition {
+        if let custom = preferences.customShortcuts[id] {
+            return custom
+        }
+        return ShortcutDefinition(id: id, key: defaultKey, modifiers: defaultModifiers)
+    }
+
+    func setShortcut(id: String, key: String, modifiers: [String]) {
+        preferences.customShortcuts[id] = ShortcutDefinition(id: id, key: key, modifiers: modifiers)
+    }
+
+    func resetShortcut(id: String) {
+        preferences.customShortcuts.removeValue(forKey: id)
+    }
+
+    func resetAllShortcuts() {
+        preferences.customShortcuts.removeAll()
+    }
+
+    func effectiveTheme(for colorScheme: ColorScheme? = nil) -> EditorTheme {
+        if preferences.theme == .system {
+            if let cs = colorScheme {
+                return preferences.effectiveTheme(for: cs)
+            }
+            let isDark = NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua
+            return preferences.effectiveTheme(for: isDark ? .dark : .light)
+        }
+        return preferences.theme
+    }
+}
+
+// MARK: - Shortcut Definition
+struct ShortcutDefinition: Codable, Equatable, Hashable, Identifiable {
+    var id: String
+    var key: String
+    var modifiers: [String]
+
+    init(id: String, key: String, modifiers: [String]) {
+        self.id = id
+        self.key = key
+        self.modifiers = modifiers
+    }
+
+    var eventModifiers: EventModifiers {
+        var mods: EventModifiers = []
+        for m in modifiers {
+            switch m.lowercased() {
+            case "command", "cmd": mods.insert(.command)
+            case "shift": mods.insert(.shift)
+            case "option", "alt": mods.insert(.option)
+            case "control", "ctrl": mods.insert(.control)
+            default: break
+            }
+        }
+        return mods
+    }
+
+    var keyEquivalent: KeyEquivalent {
+        KeyEquivalent(key.first ?? " ")
+    }
+
+    var displayString: String {
+        var res = ""
+        if modifiers.contains("control") { res += "⌃" }
+        if modifiers.contains("option") { res += "⌥" }
+        if modifiers.contains("shift") { res += "⇧" }
+        if modifiers.contains("command") { res += "⌘" }
+        res += key.uppercased()
+        return res
     }
 }
 
@@ -1138,9 +1551,15 @@ struct Preferences: Codable, Equatable {
     var autoSave: Bool = true
     var watchFileChanges: Bool = true
     var theme: EditorTheme = .system
+    var systemLightTheme: EditorTheme = .liquidGlassLight
+    var systemDarkTheme: EditorTheme = .liquidGlassDark
     var customTheme: String = ""
     var imagePasteMode: ImagePasteMode = .copyToAssets
     var language: AppLanguage = .simplifiedChinese
+    var defaultSaveLocation: String = ""
+    var bottomPadding: Int = 25
+    var autoCheckForUpdates: Bool = true
+    var customShortcuts: [String: ShortcutDefinition] = [:]
 
     init() {}
 
@@ -1158,9 +1577,26 @@ struct Preferences: Codable, Equatable {
         autoSave = try values.decodeIfPresent(Bool.self, forKey: .autoSave) ?? autoSave
         watchFileChanges = try values.decodeIfPresent(Bool.self, forKey: .watchFileChanges) ?? watchFileChanges
         theme = try values.decodeIfPresent(EditorTheme.self, forKey: .theme) ?? theme
+        systemLightTheme = try values.decodeIfPresent(EditorTheme.self, forKey: .systemLightTheme) ?? .liquidGlassLight
+        systemDarkTheme = try values.decodeIfPresent(EditorTheme.self, forKey: .systemDarkTheme) ?? .liquidGlassDark
         customTheme = try values.decodeIfPresent(String.self, forKey: .customTheme) ?? customTheme
         imagePasteMode = try values.decodeIfPresent(ImagePasteMode.self, forKey: .imagePasteMode) ?? imagePasteMode
         language = try values.decodeIfPresent(AppLanguage.self, forKey: .language) ?? language
+        defaultSaveLocation = try values.decodeIfPresent(String.self, forKey: .defaultSaveLocation) ?? defaultSaveLocation
+        bottomPadding = try values.decodeIfPresent(Int.self, forKey: .bottomPadding) ?? bottomPadding
+        autoCheckForUpdates = try values.decodeIfPresent(Bool.self, forKey: .autoCheckForUpdates) ?? autoCheckForUpdates
+        customShortcuts = try values.decodeIfPresent([String: ShortcutDefinition].self, forKey: .customShortcuts) ?? customShortcuts
+    }
+
+    func effectiveTheme(for colorScheme: ColorScheme?) -> EditorTheme {
+        if theme == .system {
+            if colorScheme == .dark {
+                return systemDarkTheme.isDark ? systemDarkTheme : .liquidGlassDark
+            } else {
+                return systemLightTheme.isLight ? systemLightTheme : .liquidGlassLight
+            }
+        }
+        return theme
     }
 }
 
@@ -1181,6 +1617,8 @@ enum EditorTheme: String, CaseIterable, Codable {
     case system = "system"
     case notesLight = "notes-light"
     case notesDark = "notes-dark"
+    case liquidGlassLight = "liquid-glass-light"
+    case liquidGlassDark = "liquid-glass-dark"
     case githubLight = "github-light"
     case githubDark = "github-dark"
     case dracula = "dracula"
@@ -1191,6 +1629,8 @@ enum EditorTheme: String, CaseIterable, Codable {
         case .system: "跟随系统"
         case .notesLight: "备忘录（浅色）"
         case .notesDark: "备忘录（深色）"
+        case .liquidGlassLight: "液态玻璃（浅色）"
+        case .liquidGlassDark: "液态玻璃（深色）"
         case .githubLight: "GitHub 浅色"
         case .githubDark: "GitHub 深色"
         case .dracula: "Dracula"
@@ -1198,12 +1638,34 @@ enum EditorTheme: String, CaseIterable, Codable {
         }
     }
 
+    var isLight: Bool {
+        switch self {
+        case .notesLight, .liquidGlassLight, .githubLight, .solarized: true
+        default: false
+        }
+    }
+
+    var isDark: Bool {
+        switch self {
+        case .notesDark, .liquidGlassDark, .githubDark, .dracula: true
+        default: false
+        }
+    }
+
     var colorScheme: ColorScheme? {
         switch self {
         case .system: nil
-        case .notesLight, .githubLight, .solarized: .light
-        case .notesDark, .githubDark, .dracula: .dark
+        case .notesLight, .liquidGlassLight, .githubLight, .solarized: .light
+        case .notesDark, .liquidGlassDark, .githubDark, .dracula: .dark
         }
+    }
+
+    static var lightThemes: [EditorTheme] {
+        [.liquidGlassLight, .notesLight, .githubLight, .solarized]
+    }
+
+    static var darkThemes: [EditorTheme] {
+        [.liquidGlassDark, .notesDark, .githubDark, .dracula]
     }
 }
 
