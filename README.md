@@ -204,23 +204,17 @@ sequenceDiagram
 - **Debian / Ubuntu**：`sudo dpkg -i m-notes_1.0.0_amd64.deb`。
 - **源码工程**：位于 [`linux/`](linux/)。
 
-### 📱 移动端 (iOS & Android)
-- **iOS / iPadOS**：原生 SwiftUI + UIKit 移动端工程，位于 [`ios/`](ios/)，支持触控专用格式栏与 Files App 存储。
-- **Android**：原生 Kotlin + Material 3 + WebView 移动端工程，位于 [`android/`](android/)，支持 SAF 存储访问与离线渲染。
-
 ---
 
-## 🏗️ 多平台工程结构 (Monorepo Layout)
+## 🏗️ 桌面多平台工程结构 (Monorepo Layout)
 
 ```
 M-Notes/
 ├── mac/        # macOS 原生工程 (SwiftUI + AppKit + WKWebView)
-├── ios/        # iOS/iPadOS 移动端工程 (SwiftUI + 触控辅助栏)
 ├── windows/    # Windows 桌面工程 (WebView2 + 本地文件 I/O)
 ├── linux/      # Linux 桌面工程 (WebKitGTK + AppImage / .deb)
-├── android/    # Android 移动端工程 (Kotlin + Android WebView)
-├── shared/     # 全平台共享核心模块 (CodeMirror 6, KaTeX, Mermaid, 主题库)
-├── dist/       # 发布安装包产物 (.dmg, .zip, .apk, .exe, .deb)
+├── shared/     # 跨平台共享核心模块 (CodeMirror 6, KaTeX, Mermaid, 主题库)
+├── dist/       # 发布安装包产物 (.dmg, .zip, .exe, .msi, .deb, .AppImage)
 └── scripts/    # 自动化构建、测试与 DMG 打包脚本
 ```
 
