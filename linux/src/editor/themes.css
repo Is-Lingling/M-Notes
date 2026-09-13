@@ -1,0 +1,280 @@
+/* ── Bundled Built-in Themes (Instant Switching) ───────────── */
+
+/* ── 1. GitHub Light Theme ─────────────────────────────────── */
+html[data-theme="github-light"], body[data-theme="github-light"] {
+  --bg: #ffffff;
+  --surface: #f6f8fa;
+  --text: #24292f;
+  --text-secondary: #57606a;
+  --text-tertiary: #8c959f;
+  --border: #d0d7de;
+  --accent: #0969da;
+  --accent-dim: rgba(9, 105, 218, 0.1);
+  --selection-bg: rgba(9, 105, 218, 0.15);
+  --link: #0969da;
+  --code-bg: #f6f8fa;
+  --code-border: #d0d7de;
+  --blockquote-border: #d0d7de;
+  --blockquote-bg: transparent;
+  --table-border: #d0d7de;
+  --table-header-bg: #f6f8fa;
+  --table-stripe-bg: #ffffff;
+  --heading-color: #24292f;
+
+  --font-body: -apple-system, "SF Pro Text", "Segoe UI", sans-serif;
+  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-size: 16px;
+  --line-height: 1.75;
+  --max-width: 800px;
+}
+
+body[data-theme="github-light"] .cm-focused .cm-cursor { border-left-color: #0969da !important; }
+body[data-theme="github-light"] .md-heading-2 { border-bottom: 1px solid #d0d7de; }
+body[data-theme="github-light"] .md-inline-code { color: #d73a49; }
+body[data-theme="github-light"] .md-blockquote { border-left: 4px solid #d0d7de; background: transparent; font-style: normal; }
+
+/* ── 2. GitHub Dark Theme ──────────────────────────────────── */
+html[data-theme="github-dark"], body[data-theme="github-dark"] {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --text: #e6edf3;
+  --text-secondary: #8d96a0;
+  --text-tertiary: #6e7681;
+  --border: #30363d;
+  --accent: #58a6ff;
+  --accent-dim: rgba(88, 166, 255, 0.1);
+  --selection-bg: rgba(88, 166, 255, 0.2);
+  --link: #58a6ff;
+  --code-bg: #161b22;
+  --code-border: #30363d;
+  --blockquote-border: #3d444d;
+  --blockquote-bg: transparent;
+  --table-border: #30363d;
+  --table-header-bg: #161b22;
+  --table-stripe-bg: #0d1117;
+  --heading-color: #e6edf3;
+}
+
+body[data-theme="github-dark"] .cm-focused .cm-cursor { border-left-color: #58a6ff !important; }
+body[data-theme="github-dark"] .md-inline-code { color: #ff7b72; }
+body[data-theme="github-dark"] .md-blockquote { border-left: 4px solid #3d444d; background: transparent; font-style: normal; }
+
+/* ── 3. Dracula Theme ──────────────────────────────────────── */
+html[data-theme="dracula"], body[data-theme="dracula"] {
+  --bg: #282a36;
+  --surface: #21222c;
+  --text: #f8f8f2;
+  --text-secondary: #b0b3c0;
+  --text-tertiary: #6272a4;
+  --border: #44475a;
+  --accent: #bd93f9;
+  --accent-dim: rgba(189, 147, 249, 0.15);
+  --selection-bg: rgba(68, 71, 90, 0.6);
+  --link: #8be9fd;
+  --code-bg: #21222c;
+  --code-border: #44475a;
+  --blockquote-border: #bd93f9;
+  --blockquote-bg: rgba(189, 147, 249, 0.05);
+  --table-border: #44475a;
+  --table-header-bg: #21222c;
+  --table-stripe-bg: #282a36;
+  --heading-color: #ff79c6;
+
+  --font-mono: "Fira Code", "Cascadia Code", Menlo, monospace;
+}
+
+body[data-theme="dracula"] .cm-focused .cm-cursor { border-left-color: #bd93f9 !important; }
+body[data-theme="dracula"] .md-heading-1 { color: #ff79c6; }
+body[data-theme="dracula"] .md-heading-2 { color: #ff79c6; border-bottom-color: #44475a; }
+body[data-theme="dracula"] .md-heading-3 { color: #ffb86c; }
+body[data-theme="dracula"] .md-inline-code { color: #ff79c6; background: #21222c; border-color: #44475a; }
+body[data-theme="dracula"] .md-link { color: #8be9fd; }
+body[data-theme="dracula"] .md-blockquote { border-left-color: #bd93f9; color: #b0b3c0; }
+body[data-theme="dracula"] .md-task-checkbox:checked { background-color: #bd93f9; border-color: #bd93f9; }
+
+/* ── 4. Solarized Light Theme ──────────────────────────────── */
+html[data-theme="solarized"], body[data-theme="solarized"] {
+  --bg: #fdf6e3;
+  --surface: #eee8d5;
+  --text: #657b83;
+  --text-secondary: #839496;
+  --text-tertiary: #93a1a1;
+  --border: #ddd6c1;
+  --accent: #268bd2;
+  --accent-dim: rgba(38, 139, 210, 0.1);
+  --selection-bg: rgba(38, 139, 210, 0.15);
+  --link: #268bd2;
+  --code-bg: #eee8d5;
+  --code-border: #ddd6c1;
+  --blockquote-border: #268bd2;
+  --blockquote-bg: rgba(38, 139, 210, 0.05);
+  --table-border: #ddd6c1;
+  --table-header-bg: #eee8d5;
+  --table-stripe-bg: #fdf6e3;
+  --heading-color: #586e75;
+
+  --font-size: 16px;
+  --line-height: 1.8;
+}
+
+body[data-theme="solarized"] .cm-focused .cm-cursor { border-left-color: #268bd2 !important; }
+body[data-theme="solarized"] .md-heading-1 { color: #586e75; }
+body[data-theme="solarized"] .md-heading-2 { color: #657b83; border-bottom-color: #ddd6c1; }
+body[data-theme="solarized"] .md-inline-code { color: #cb4b16; background: #eee8d5; }
+body[data-theme="solarized"] .md-link { color: #268bd2; }
+body[data-theme="solarized"] .md-blockquote { font-style: italic; }
+body[data-theme="solarized"] .md-task-checkbox:checked { background-color: #268bd2; border-color: #268bd2; }
+
+/* ── 5. Liquid Glass Light Theme (液态玻璃 - 浅色) ────────────────── */
+html[data-theme="liquid-glass-light"], body[data-theme="liquid-glass-light"] {
+  --bg: #f8fbff;
+  --surface: rgba(255, 255, 255, 0.72);
+  --text: #1a2233;
+  --text-secondary: #4a5568;
+  --text-tertiary: #718096;
+  --border: rgba(180, 200, 230, 0.5);
+  --accent: #0077ff;
+  --accent-dim: rgba(0, 119, 255, 0.12);
+  --selection-bg: rgba(0, 119, 255, 0.18);
+  --link: #0066ee;
+  --code-bg: rgba(240, 246, 255, 0.85);
+  --code-border: rgba(0, 119, 255, 0.16);
+  --blockquote-border: #0077ff;
+  --blockquote-bg: rgba(0, 119, 255, 0.05);
+  --table-border: rgba(180, 200, 230, 0.55);
+  --table-header-bg: rgba(230, 240, 255, 0.82);
+  --table-stripe-bg: rgba(255, 255, 255, 0.65);
+  --heading-color: #0f172a;
+  --shadow-sm: 0 4px 18px rgba(0, 80, 180, 0.06);
+
+  --font-body: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+body[data-theme="liquid-glass-light"] {
+  background: linear-gradient(180deg, #f8fbff 0%, #edf3fb 100%) fixed;
+  color: var(--text);
+}
+
+body[data-theme="liquid-glass-light"] .cm-editor .cm-content {
+  background: transparent;
+}
+
+body[data-theme="liquid-glass-light"] .md-code-block {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 119, 255, 0.18) !important;
+  box-shadow: 0 6px 20px rgba(0, 90, 220, 0.06);
+  border-radius: 10px;
+}
+
+body[data-theme="liquid-glass-light"] .md-code-header {
+  background: rgba(236, 244, 255, 0.88) !important;
+  border-bottom: 1px solid rgba(0, 119, 255, 0.14) !important;
+  backdrop-filter: blur(10px);
+}
+
+body[data-theme="liquid-glass-light"] .md-blockquote {
+  border-left: 3.5px solid #0077ff !important;
+  background: rgba(0, 119, 255, 0.05) !important;
+  backdrop-filter: blur(8px);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 119, 255, 0.04);
+}
+
+body[data-theme="liquid-glass-light"] .md-table-wrapper {
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(0, 119, 255, 0.18) !important;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 80, 200, 0.05);
+}
+
+body[data-theme="liquid-glass-light"] .cm-focused .cm-cursor {
+  border-left-color: #0077ff !important;
+}
+
+body[data-theme="liquid-glass-light"] .md-inline-code {
+  color: #0066ee;
+  background: rgba(0, 119, 255, 0.08);
+  border: 1px solid rgba(0, 119, 255, 0.15);
+  border-radius: 4px;
+}
+
+/* ── 6. Liquid Glass Dark Theme (液态玻璃 - 深色) ─────────────────── */
+html[data-theme="liquid-glass-dark"], body[data-theme="liquid-glass-dark"] {
+  --bg: #0b1120;
+  --surface: rgba(18, 28, 48, 0.75);
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+  --border: rgba(56, 189, 248, 0.2);
+  --accent: #38bdf8;
+  --accent-dim: rgba(56, 189, 248, 0.15);
+  --selection-bg: rgba(56, 189, 248, 0.22);
+  --link: #38bdf8;
+  --code-bg: rgba(15, 23, 42, 0.85);
+  --code-border: rgba(56, 189, 248, 0.22);
+  --blockquote-border: #38bdf8;
+  --blockquote-bg: rgba(56, 189, 248, 0.08);
+  --table-border: rgba(56, 189, 248, 0.22);
+  --table-header-bg: rgba(15, 23, 42, 0.88);
+  --table-stripe-bg: rgba(30, 41, 59, 0.55);
+  --heading-color: #f8fafc;
+  --shadow-sm: 0 4px 18px rgba(0, 0, 0, 0.35);
+
+  --font-body: -apple-system, "SF Pro Text", "Helvetica Neue", sans-serif;
+  --font-mono: "SF Mono", "Cascadia Code", Menlo, monospace;
+}
+
+body[data-theme="liquid-glass-dark"] {
+  background: linear-gradient(180deg, #0b1120 0%, #060911 100%) fixed;
+  color: var(--text);
+}
+
+body[data-theme="liquid-glass-dark"] .cm-editor .cm-content {
+  background: transparent;
+}
+
+body[data-theme="liquid-glass-dark"] .md-code-block {
+  background: rgba(15, 23, 42, 0.72) !important;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  border-radius: 10px;
+}
+
+body[data-theme="liquid-glass-dark"] .md-code-header {
+  background: rgba(22, 36, 62, 0.85) !important;
+  border-bottom: 1px solid rgba(56, 189, 248, 0.18) !important;
+  backdrop-filter: blur(10px);
+}
+
+body[data-theme="liquid-glass-dark"] .md-blockquote {
+  border-left: 3.5px solid #38bdf8 !important;
+  background: rgba(56, 189, 248, 0.08) !important;
+  backdrop-filter: blur(8px);
+  border-radius: 0 8px 8px 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+body[data-theme="liquid-glass-dark"] .md-table-wrapper {
+  background: rgba(15, 23, 42, 0.72) !important;
+  backdrop-filter: blur(14px);
+  border: 1px solid rgba(56, 189, 248, 0.22) !important;
+  border-radius: 10px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.3);
+}
+
+body[data-theme="liquid-glass-dark"] .cm-focused .cm-cursor {
+  border-left-color: #38bdf8 !important;
+}
+
+body[data-theme="liquid-glass-dark"] .md-inline-code {
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  border-radius: 4px;
+}

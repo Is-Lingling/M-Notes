@@ -4,9 +4,12 @@
 > **适用平台**：macOS 14.0 (Sonoma) 及更高版本 (Apple Silicon & Intel) / 扩展支持 iOS, Windows, Linux, Android  
 > **发布日期**：2026年9月  
 > **发布包**：  
-> - **macOS DMG 镜像 (推荐)**：`dist/M-Notes-v1.0.0-macOS.dmg`  
-> - **macOS 绿色压缩包**：`dist/M-Notes-v1.0.0-macOS.zip`  
-> - **macOS 应用文件**：`dist/M Notes.app`  
+> - **macOS 磁盘镜像 (推荐)**：`M-Notes-v1.0.0-macOS.dmg` (4.5 MB)  
+> - **macOS 绿色便携包**：`M-Notes-v1.0.0-macOS.zip` (4.3 MB)  
+> - **iOS 安装包 (IPA)**：`M-Notes-v1.0.0-iOS.ipa` (1.8 MB)  
+> - **Windows 安装包**：`M-Notes-v1.0.0-windows-x64-setup.exe` / `.msi`  
+> - **Linux 安装包**：`m-notes_1.0.0_amd64.deb` / `.AppImage`  
+> - **Android 安装包**：`M-Notes-v1.0.0-android.apk`  
 
 ---
 
@@ -205,6 +208,14 @@
 
 ## 软件打包与分发产物清单
 
-1. **macOS 磁盘镜像 (DMG)**：`dist/M-Notes-v1.0.0-macOS.dmg` (4.5 MB, SHA256: `90f6248d577bfc23365644d0b708833189e66382ba18437cf784c943873176eb`)
-2. **macOS 绿色压缩包 (ZIP)**：`dist/M-Notes-v1.0.0-macOS.zip` (4.3 MB)
-3. **macOS 应用 Bundle (APP)**：`dist/M Notes.app`
+| 平台 | 安装包名称 | 格式与架构 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **macOS** | `M-Notes-v1.0.0-macOS.dmg` | DMG 磁盘镜像 (Universal) | 原生拖拽安装至 `/Applications` 文件夹 (4.5 MB) |
+| **macOS** | `M-Notes-v1.0.0-macOS.zip` | ZIP 便携压缩包 (Universal) | 解压即用 (4.3 MB) |
+| **iOS / iPadOS** | `M-Notes-v1.0.0-iOS.ipa` | IPA 安装包 (arm64) | 支持 AltStore、Sideloadly 或企业签名安装 (1.8 MB) |
+| **Windows** | `M-Notes-v1.0.0-windows-x64-setup.exe` | NSIS 安装执行文件 (x64) | Windows 原生安装程序 |
+| **Windows** | `M-Notes-v1.0.0-windows-x64.msi` | MSI 安装包 (x64) | 企业级 Windows Installer |
+| **Linux** | `m-notes_1.0.0_amd64.deb` | DEB 软件包 (amd64) | 适用于 Ubuntu / Debian |
+| **Linux** | `m-notes_1.0.0_amd64.AppImage` | AppImage 独立运行包 (x86_64) | 免安装赋予执行权限直接运行 |
+| **Android** | `M-Notes-v1.0.0-android.apk` | APK 安装包 (ARM/x86) | 支持 Android 8.0+ 手机与平板设备 |
+

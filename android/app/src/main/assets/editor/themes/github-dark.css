@@ -1,0 +1,25 @@
+/* ── GitHub Dark Theme ──────────────────────────────────── */
+:root {
+  --bg: #0d1117;
+  --surface: #161b22;
+  --text: #e6edf3;
+  --text-secondary: #8d96a0;
+  --text-tertiary: #6e7681;
+  --border: #30363d;
+  --accent: #58a6ff;
+  --accent-dim: rgba(88, 166, 255, 0.1);
+  --selection-bg: rgba(88, 166, 255, 0.2);
+  --link: #58a6ff;
+  --code-bg: #161b22;
+  --code-border: #30363d;
+  --blockquote-border: #3d444d;
+  --blockquote-bg: transparent;
+  --table-border: #30363d;
+  --table-header-bg: #161b22;
+  --table-stripe-bg: #0d1117;
+  --heading-color: #e6edf3;
+}
+
+.cm-focused .cm-cursor { border-left-color: #58a6ff !important; }
+.md-inline-code { color: #ff7b72; }
+.md-blockquote { border-left: 4px solid #3d444d; background: transparent; font-style: normal; }

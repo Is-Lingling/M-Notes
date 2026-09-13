@@ -22,3 +22,18 @@ yarn-error.log*
 
 # Distribution artifacts
 dist/
+
+# Rust / Cargo
+target/
+**/target/
+Cargo.lock
+**/Cargo.lock
+**/src-tauri/gen/
+
+# Android
+.gradle/
+**/build/
+local.properties
+*.apk
+*.aab
+
