@@ -27,7 +27,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -51,7 +51,7 @@ jobs:
       - name: Build Windows Package
         run: |
           cd windows
-          npx tauri build
+          npx tauri build --no-version-check
 
       - name: Collect and Rename Artifacts
         shell: bash
@@ -90,7 +90,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
@@ -128,7 +128,7 @@ jobs:
       - name: Build Linux Package
         run: |
           cd linux
-          npx tauri build
+          npx tauri build --no-version-check
 
       - name: Collect and Rename Artifacts
         run: |
