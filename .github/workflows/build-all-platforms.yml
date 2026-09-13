@@ -51,7 +51,7 @@ jobs:
       - name: Build Windows Package
         run: |
           cd windows
-          npx tauri build --no-version-check
+          npx tauri build --ignore-version-mismatches
 
       - name: Collect and Rename Artifacts
         shell: bash
@@ -128,7 +128,7 @@ jobs:
       - name: Build Linux Package
         run: |
           cd linux
-          npx tauri build --no-version-check
+          npx tauri build --ignore-version-mismatches
 
       - name: Collect and Rename Artifacts
         run: |

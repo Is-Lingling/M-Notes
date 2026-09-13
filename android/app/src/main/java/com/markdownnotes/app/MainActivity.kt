@@ -44,7 +44,7 @@ class MainActivity : AppCompatActivity() {
             webViewClient = object : WebViewClient() {
                 override fun onPageFinished(view: WebView?, url: String?) {
                     super.onPageFinished(view, url)
-                    view?.evaluateJavaScript("window.editor?.setContent(${escapeJs(currentContent)})", null)
+                    view?.evaluateJavascript("window.editor?.setContent(${escapeJs(currentContent)})", null)
                 }
             }
 
@@ -67,7 +67,7 @@ class MainActivity : AppCompatActivity() {
                 val content = reader.readText()
                 currentFileUri = uri
                 currentContent = content
-                webView.evaluateJavaScript("window.editor?.setContent(${escapeJs(content)})", null)
+                webView.evaluateJavascript("window.editor?.setContent(${escapeJs(content)})", null)
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -75,7 +75,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun saveFileToUri(uri: Uri) {
-        webView.evaluateJavaScript("window.editor?.getContent()") { value ->
+        webView.evaluateJavascript("window.editor?.getContent()") { value: String? ->
             val unquoted = value?.removeSurrounding("\"")?.replace("\\n", "\n") ?: currentContent
             try {
                 contentResolver.openOutputStream(uri)?.use { outputStream ->
