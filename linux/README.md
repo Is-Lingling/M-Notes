@@ -24,7 +24,7 @@ chmod +x M-Notes-x86_64.AppImage
 
 ### 方式 2：Debian / Ubuntu (.deb 安装)
 ```bash
-sudo dpkg -i m-notes_1.0.0_amd64.deb
+sudo dpkg -i m-notes_1.0.6_amd64.deb
 sudo apt-get install -f
 ```
 
@@ -42,3 +42,7 @@ npm install
 npm run build
 ```
 产物将自动生成于 `linux/src-tauri/target/release/bundle/`。
+
+## 桌面工作区
+
+现提供大纲、格式工具、图片嵌入、查找替换、HTML 导出、主题设置、未保存保护及草稿恢复。两平台共用 `shared/desktop/` 源码，构建前自动同步。详见 [工作区功能与测试说明](../shared/desktop/README.md)。

@@ -43,6 +43,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         (appState?.saveCurrentFile() ?? true) ? .terminateNow : .terminateCancel
     }
 
+    func applicationDidResignActive(_ notification: Notification) {
+        appState?.setBackgroundActivity(true)
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        appState?.setBackgroundActivity(false)
+    }
+
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         false
     }

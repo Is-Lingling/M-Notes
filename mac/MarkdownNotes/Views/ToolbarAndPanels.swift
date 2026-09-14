@@ -1373,7 +1373,6 @@ let allShortcutConfigs: [ShortcutItemConfig] = [
     ShortcutItemConfig(id: "toggleSidebar", categoryZh: "视图", categoryEn: "View", nameZh: "显示/隐藏侧边栏", nameEn: "Toggle Sidebar", defaultKey: "\\", defaultModifiers: ["command"]),
     ShortcutItemConfig(id: "toggleOutline", categoryZh: "视图", categoryEn: "View", nameZh: "显示/隐藏大纲栏", nameEn: "Toggle Outline", defaultKey: "o", defaultModifiers: ["command", "option"]),
     ShortcutItemConfig(id: "toggleSourceMode", categoryZh: "视图", categoryEn: "View", nameZh: "切换源码模式", nameEn: "Toggle Source Mode", defaultKey: "/", defaultModifiers: ["command"]),
-    ShortcutItemConfig(id: "toggleFocusMode", categoryZh: "视图", categoryEn: "View", nameZh: "切换专注模式", nameEn: "Toggle Focus Mode", defaultKey: "f", defaultModifiers: ["command", "control"]),
     ShortcutItemConfig(id: "toggleTypewriter", categoryZh: "视图", categoryEn: "View", nameZh: "切换打字机模式", nameEn: "Toggle Typewriter Mode", defaultKey: "t", defaultModifiers: ["command", "shift"]),
 
     // Format

@@ -219,6 +219,9 @@ html, body {
   transform: rotate(45deg);
 }
 
+/* Contain block-widget margins so measured height includes visual spacing. */
+.cm-measured-block { display: flow-root; }
+
 /* ── KaTeX Math Formula Widgets ── */
 .cm-math-widget {
   cursor: pointer;
@@ -247,11 +250,14 @@ html, body {
 }
 
 /* ── Typora WYSIWYG Image Widget ── */
+/* Let short image notes report their natural height as images load or resize. */
+.cm-editor .cm-content:has(.cm-image-widget, .cm-mermaid-widget) { min-height: 0; }
 .cm-image-widget {
+  position: relative;
   display: inline-block;
-  margin: 8px 0;
+  margin: 0;
   max-width: 100%;
-  vertical-align: middle;
+  vertical-align: top;
   cursor: pointer;
   border-radius: 8px;
 }
@@ -286,6 +292,7 @@ html, body {
 .cm-image-placeholder span span { display: block; font-size: 12px; color: var(--text-tertiary); }
 
 /* ── Code Block Header & Lines ── */
+.cm-hidden-fence { height: 0; overflow: hidden; }
 .cm-code-block-header-line {
   background: var(--surface) !important;
   border-top: 1px solid var(--code-border) !important;
@@ -639,6 +646,7 @@ html, body {
 .md-mermaid svg { max-width: 100%; height: auto; }
 
 .cm-mermaid-widget {
+  margin: 0;
   cursor: pointer;
   user-select: none;
   transition: border-color 0.15s, box-shadow 0.15s;
@@ -671,12 +679,12 @@ html, body {
   font-family: ui-monospace, Menlo, Monaco, Consolas, monospace;
 }
 
-/* ── Focus Mode ── */
-.focus-mode .cm-line:not(.cm-activeLine) {
-  opacity: 0.3;
-  transition: opacity 0.2s;
+/* Background pages do not need visual animations or a blinking caret. */
+.backgrounded *, .backgrounded *::before, .backgrounded *::after {
+  animation-play-state: paused !important;
+  transition: none !important;
+  caret-color: transparent !important;
 }
-.focus-mode .cm-line:hover { opacity: 0.7; }
 
 /* ── Typewriter Mode ── */
 .typewriter-mode .cm-scroller {
@@ -724,21 +732,30 @@ html, body {
 }
 .drop-overlay.visible { display: flex; }
 
-/* ── Responsive (Focus Mode narrow) ── */
+/* ── Responsive (narrow windows) ── */
 @media (max-width: 800px) {
-  .cm-editor .cm-content { padding: 32px 24px 80px; }
+  .cm-editor .cm-content {
+  /* Natural height must change when asynchronous images resize, even in short notes. */
+  min-height: 0; padding: 32px 24px 80px; }
 }
 
 /* Keep heading metrics on the line; nested highlighter spans inherit them. */
 .cm-line[class*="cm-heading-"] span { font-size: inherit; }
 .cm-image-path {
+  /* Overlay the image instead of adding an editable document row. */
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  z-index: 2;
   display: block;
   width: 100%;
-  min-width: 240px;
-  margin-top: 8px;
+  min-width: 0;
+  max-width: 100%;
+  margin: 0;
   padding: 6px 8px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
+  border: 0;
+  outline: none;
+  border-radius: 0 0 8px 8px;
   background: var(--surface);
   color: var(--text);
   font: 12px/1.5 var(--font-mono);
@@ -747,6 +764,7 @@ html, body {
 
 /* Live table: stable columns, inline cell editing, compact contextual controls. */
 .cm-live-table {
+  position: relative;
   margin: 8px 0;
   border: 1px solid var(--table-border);
   border-radius: 8px;
@@ -772,8 +790,54 @@ html, body {
 .cm-live-table td:focus-within .cm-table-cell-preview, .cm-live-table th:focus-within .cm-table-cell-preview { visibility: hidden; }
 
 .cm-content ::selection, .cm-content::selection { background: var(--selection-bg); }
+.cm-image-widget.cm-block-selected { box-shadow: none; }
+.cm-image-widget.cm-block-selected > .cm-rendered-image,
+.cm-image-error.cm-block-selected { outline: 2px solid var(--accent); outline-offset: -2px; }
 .cm-block-selected { box-shadow: inset 0 0 0 2px var(--accent); }
-.cm-code-block-header-line.cm-block-selected { background: var(--accent-dim) !important; }
+.cm-live-table.cm-block-selected { box-shadow: none; }
+.cm-live-table.cm-block-selected::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px var(--accent);
+  pointer-events: none;
+}
+.cm-editor.cm-table-block-selection .cm-cursor { visibility: hidden; }
+.cm-editor.cm-table-block-selection .cm-content { caret-color: transparent; }
+.cm-code-block-header-line.cm-block-selected,
+.cm-code-block-line.cm-code-selected {
+  border-color: var(--accent) !important;
+  box-shadow: none;
+}
+.cm-code-block-header-line.cm-block-selected {
+  box-shadow: inset 1px 1px 0 var(--accent), inset -1px 0 0 var(--accent);
+}
+.cm-code-block-line.cm-code-selected {
+  box-shadow: inset 1px 0 0 var(--accent), inset -1px 0 0 var(--accent);
+}
+.cm-code-block-last.cm-code-selected {
+  box-shadow: inset 1px 0 0 var(--accent), inset -1px -1px 0 var(--accent);
+}
+.cm-editor.cm-code-block-selection .cm-selectionBackground,
+.cm-editor.cm-code-text-selection .cm-selectionBackground,
+.cm-editor.cm-math-text-selection .cm-selectionBackground,
+.cm-editor.cm-table-block-selection .cm-selectionBackground,
+.cm-editor.cm-table-block-selection .cm-content ::selection,
+.cm-editor.cm-table-block-selection .cm-content::selection,
+.cm-editor.cm-code-block-selection .cm-content ::selection,
+.cm-editor.cm-code-block-selection .cm-content::selection {
+  background: transparent !important;
+}
+.cm-editor.cm-code-text-selection .cm-code-block-line::selection,
+.cm-editor.cm-code-text-selection .cm-code-block-line ::selection {
+  background: var(--selection-bg) !important;
+}
+.cm-editor.cm-math-text-selection .cm-math-source-line::selection,
+.cm-editor.cm-math-text-selection .cm-math-source-line ::selection {
+  background: var(--selection-bg) !important;
+}
 .cm-code-header-widget { cursor: default; }
 
 @media print {
@@ -781,4 +845,3 @@ html, body {
     padding-bottom: 0 !important;
   }
 }
-

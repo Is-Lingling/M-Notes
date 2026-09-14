@@ -55,6 +55,27 @@ const path = require('node:path');
   await table.waitFor();
   assert.equal(await table.locator('tr').count(), 3);
   assert.equal(await table.locator('strong').innerText(), 'bold');
+  const beforeSelection = await table.boundingBox();
+  await table.locator('.cm-table-hint').click();
+  await page.waitForTimeout(100);
+  assert.equal(await page.locator('.cm-table-block-selection').count(), 1);
+  const tableFrame = await table.evaluate(element => {
+    const frame = getComputedStyle(element, '::after');
+    return {
+      width: parseFloat(frame.width), height: parseFloat(frame.height),
+      expectedWidth: element.clientWidth, expectedHeight: element.clientHeight,
+      pointerEvents: frame.pointerEvents, zIndex: Number(frame.zIndex),
+      outside: [...document.querySelectorAll('.cm-selectionBackground')].every(layer => getComputedStyle(layer).backgroundColor === 'rgba(0, 0, 0, 0)'),
+    };
+  });
+  assert(Math.abs(tableFrame.width - tableFrame.expectedWidth) < 1);
+  assert(Math.abs(tableFrame.height - tableFrame.expectedHeight) < 1);
+  assert.equal(tableFrame.pointerEvents, 'none');
+  assert(tableFrame.zIndex > 0 && tableFrame.outside);
+  assert.deepEqual(await table.boundingBox(), beforeSelection);
+  await page.screenshot({ path: '/tmp/mnotes-table-selection.png' });
+  await table.locator('td').first().click();
+  assert.equal(await page.locator('.cm-table-block-selection').count(), 0);
   const firstCell = table.locator('input[data-row="1"][data-col="0"]');
   await firstCell.focus();
   await firstCell.fill('changed | escaped');

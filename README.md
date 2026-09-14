@@ -190,18 +190,18 @@ sequenceDiagram
 访问 [GitHub Releases](https://github.com/Is-Lingling/M-Notes/releases/latest) 获取各平台的最新预编译安装包：
 
 ### 🍏 macOS 安装
-- **`M-Notes-v1.0.0-macOS.dmg` (推荐)**：下载后双击打开磁盘镜像，将 `M Notes` 图标拖拽至 `Applications` 文件夹即可完成安装。
-- **`M-Notes-v1.0.0-macOS.zip` (便携包)**：解压后直接双击运行或移至应用程序文件夹。
+- **`M-Notes-v1.0.6-macOS.dmg` (推荐)**：下载后双击打开磁盘镜像，将 `M Notes` 图标拖拽至 `Applications` 文件夹即可完成安装。
+- **`M-Notes-v1.0.6-macOS.zip` (便携包)**：解压后直接双击运行或移至应用程序文件夹。
 - **系统要求**：macOS 14.0 (Sonoma) 或更高版本，原生支持 Apple Silicon (M1/M2/M3/M4) 及 Intel 芯片。
 
 ### 🪟 Windows 安装
-- **安装包**：`M-Notes-Setup-x64.exe` / 便携版运行包。
+- **安装包**：`M-Notes-v1.0.6-windows-x64-setup.exe` / `M-Notes-v1.0.6-windows-x64.msi`。
 - **系统要求**：Windows 10 / Windows 11 (64-bit)，内置或已安装 WebView2。
 - **源码工程**：位于 [`windows/`](windows/)。
 
 ### 🐧 Linux 安装
-- **AppImage (免安装推荐)**：下载 `M-Notes-x86_64.AppImage`，执行 `chmod +x M-Notes-x86_64.AppImage` 后直接双击运行。
-- **Debian / Ubuntu**：`sudo dpkg -i m-notes_1.0.0_amd64.deb`。
+- **AppImage (免安装推荐)**：下载 `m-notes_1.0.6_amd64.AppImage`，执行 `chmod +x m-notes_1.0.6_amd64.AppImage` 后直接双击运行。
+- **Debian / Ubuntu**：`sudo dpkg -i m-notes_1.0.6_amd64.deb`。
 - **源码工程**：位于 [`linux/`](linux/)。
 
 ---

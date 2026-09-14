@@ -1,0 +1,16 @@
+{
+  "identifier": "desktop",
+  "description": "File access is restricted to paths selected through native dialogs.",
+  "windows": [
+    "main"
+  ],
+  "permissions": [
+    "core:default",
+    "core:window:allow-destroy",
+    "dialog:allow-open",
+    "dialog:allow-save",
+    "fs:allow-read-text-file",
+    "fs:allow-read-file",
+    "fs:allow-write-text-file"
+  ]
+}

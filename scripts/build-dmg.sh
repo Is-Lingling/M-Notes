@@ -10,7 +10,7 @@ REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 DIST_DIR="$REPO_DIR/dist"
 APP_NAME="M Notes"
 APP_BUNDLE="$DIST_DIR/$APP_NAME.app"
-DMG_NAME="M-Notes-v1.0.0-macOS.dmg"
+DMG_NAME="M-Notes-v1.0.6-macOS.dmg"
 DMG_PATH="$DIST_DIR/$DMG_NAME"
 VOLUME_NAME="M Notes"
 

@@ -26,3 +26,7 @@ npm run dev
 npm run build
 ```
 编译产物将自动生成于 `windows/src-tauri/target/release/bundle/`。
+
+## 桌面工作区
+
+现提供大纲、格式工具、图片嵌入、查找替换、HTML 导出、主题设置、未保存保护及草稿恢复。两平台共用 `shared/desktop/` 源码，构建前自动同步。详见 [工作区功能与测试说明](../shared/desktop/README.md)。

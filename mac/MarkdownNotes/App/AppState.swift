@@ -28,7 +28,10 @@ class AppState: ObservableObject {
     // MARK: Editor State
     @Published var currentContent: String = ""
     @Published var isSourceMode: Bool = false
-    @Published var isFocusMode: Bool = false
+    @Published var isEditorSleeping: Bool = false
+    var sleepingEditorSnapshot: Data?
+    private(set) var isInBackground = false
+    private var watchedDirectory: URL?
     @Published var isTypewriterMode: Bool = false
     @Published var wordCount: Int = 0
     @Published var charCount: Int = 0
@@ -1063,6 +1066,7 @@ Thank you for choosing **M Notes**! Happy writing!
         fsWatcher?.stop()
         fsWatcher = FSEventWatcher(url: url) { [weak self] changedURL in
             Task { @MainActor in
+                guard self?.isInBackground == false else { return }
                 NotificationCenter.default.post(name: .fileSystemDidChange, object: changedURL)
                 // Auto-reload if current file was changed externally
                 if let currentFile = self?.selectedFile,
@@ -1071,12 +1075,25 @@ Thank you for choosing **M Notes**! Happy writing!
                 }
             }
         }
-        fsWatcher?.start()
+        watchedDirectory = url
+        if !isInBackground { fsWatcher?.start() }
+    }
+
+    func setBackgroundActivity(_ background: Bool) {
+        guard isInBackground != background else { return }
+        isInBackground = background
+        if background {
+            fsWatcher?.stop()
+        } else {
+            // Reconcile once after resuming, since events were intentionally not observed.
+            reloadCurrentFileIfNeeded()
+            if let directory = watchedDirectory { startWatching(url: directory) }
+        }
     }
 
     private func reloadCurrentFileIfNeeded() {
         guard let file = selectedFile, !isDirty else { return }
-        guard let newContent = try? String(contentsOf: file.url, encoding: .utf8),
+        guard let newContent = try? String(contentsOf: file.url, encoding: fileEncoding),
               newContent != currentContent else { return }
         currentContent = newContent
         NotificationCenter.default.post(name: .fileContentReloaded, object: newContent)

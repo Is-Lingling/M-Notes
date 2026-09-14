@@ -31,6 +31,20 @@ struct AppStateSmoke {
         restored.removeRecentFile(missing)
         precondition(!restored.recentFiles.contains(missing))
 
+        // Background work reconciles clean files on return, without overwriting dirty content.
+        precondition(state.openFile(txt))
+        state.setBackgroundActivity(true)
+        try "External 中文".write(to: txt, atomically: true, encoding: .utf16)
+        precondition(state.currentContent == "Updated 中文文本")
+        state.setBackgroundActivity(false)
+        precondition(state.currentContent == "External 中文", "Resume should respect the original text encoding")
+        state.contentDidChange("Unsaved draft")
+        state.setBackgroundActivity(true)
+        try "Another external edit".write(to: txt, atomically: true, encoding: .utf16)
+        state.setBackgroundActivity(false)
+        precondition(state.currentContent == "Unsaved draft", "Resume must preserve unsaved content")
+        precondition(state.saveCurrentFile())
+
         // 1. Re-opening existing files does NOT change their order
         let orderBefore = restored.uncategorizedFiles
         precondition(restored.openFile(txt))

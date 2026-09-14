@@ -14,3 +14,10 @@ swiftc -swift-version 5 MarkdownNotes/Services/UpdateChecker.swift tests/UpdateC
 swiftc -swift-version 5 MarkdownNotes/Services/EditorResources.swift MarkdownNotes/Services/DocumentExporter.swift \
   tests/ExportSmoke.swift -o "$fixture_dir/export-test"
 "$fixture_dir/export-test" "$repository_dir/MarkdownNotes/Editor/editor.html"
+
+lifecycle_sources=()
+for source in MarkdownNotes/App/*.swift MarkdownNotes/Views/*.swift MarkdownNotes/Services/*.swift MarkdownNotes/Models/*.swift; do
+  [[ "$source" == */MarkdownNotesApp.swift ]] || lifecycle_sources+=("$source")
+done
+swiftc -swift-version 5 "${lifecycle_sources[@]}" tests/EditorLifecycleSmoke.swift -o "$fixture_dir/lifecycle-test"
+"$fixture_dir/lifecycle-test" "$repository_dir/MarkdownNotes/Editor/editor.html"

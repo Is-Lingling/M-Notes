@@ -76,8 +76,6 @@
 "显示大纲栏 (⌘⌥O)" = "Show outline (⌘⌥O)";
 "切换到所见即所得模式 (⌘/)" = "Switch to live preview (⌘/)";
 "切换到源码模式 (⌘/)" = "Switch to source mode (⌘/)";
-"退出专注模式" = "Exit focus mode";
-"专注模式 (⌘⌃F)" = "Focus mode (⌘⌃F)";
 "查找" = "Find";
 "替换" = "Replace";
 "全部" = "All";
@@ -132,7 +130,6 @@
 "名称" = "Name";
 "文件大小" = "File Size";
 "Markdown 语法参考" = "Markdown Syntax Reference";
-"专注模式" = "Focus Mode";
 "打字机模式" = "Typewriter Mode";
 "源码模式" = "Source Mode";
 "查找…" = "Find…";

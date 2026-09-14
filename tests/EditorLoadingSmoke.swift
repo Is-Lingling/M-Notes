@@ -29,6 +29,7 @@ struct EditorLoadingSmoke {
         Task { @MainActor in
             do {
                 try await waitFor("Boolean(window.editor?._view)")
+                try await waitFor("typeof window.mermaid === 'undefined'")
                 let content = "# Native loading test\n\nVisible body\n\n![image](\(imageURL.absoluteString))\n"
                 let data = try JSONSerialization.data(withJSONObject: [content])
                 let json = String(decoding: data, as: UTF8.self)
@@ -40,7 +41,10 @@ struct EditorLoadingSmoke {
                 _ = try await webView.evaluateJavaScript("window.editor.setSourceMode(false); window.editor.setContent('# Second file\\n\\nSecond body')")
                 try await waitFor("document.querySelector('.cm-content')?.textContent.includes('Second body') === true")
                 try await waitFor("document.querySelector('.cm-content')?.getBoundingClientRect().height > 0")
-                print("PASS: native editor loads, body displays, local image loads, source mode and file switch work")
+                try await waitFor("typeof window.mermaid === 'undefined'")
+                _ = try await webView.evaluateJavaScript("window.editor.setContent('# Diagram\\n\\n```mermaid\\ngraph TD\\nA-->B\\n```\\n'); window.editor.gotoLine(1)")
+                try await waitFor("document.querySelector('.cm-mermaid-widget svg') !== null")
+                print("PASS: on-demand Mermaid; native editor loads, body displays, local image loads, source mode and file switch work")
                 try? FileManager.default.removeItem(at: fixtureDirectory)
                 exit(0)
             } catch {

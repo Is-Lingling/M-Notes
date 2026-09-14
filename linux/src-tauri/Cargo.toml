@@ -1,11 +1,13 @@
 [package]
 name = "m-notes-linux"
-version = "1.0.0"
+version = "1.0.6"
 description = "M Notes Desktop for Linux"
 authors = ["Is-Lingling"]
 edition = "2021"
 
 [dependencies]
+tauri-plugin-dialog = "2"
+tauri-plugin-fs = "2"
 tauri = { version = "2.11", features = [] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

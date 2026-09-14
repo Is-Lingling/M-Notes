@@ -35,8 +35,8 @@ targets:
       properties:
         CFBundleName: M Notes
         CFBundleDisplayName: M Notes
-        CFBundleShortVersionString: "1.0"
-        CFBundleVersion: "4"
+        CFBundleShortVersionString: "1.0.6"
+        CFBundleVersion: "10"
         CFBundleIconName: AppIcon
         NSHumanReadableDescription: "A powerful Markdown editor for macOS"
         NSPrincipalClass: NSApplication

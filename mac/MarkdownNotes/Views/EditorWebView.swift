@@ -11,20 +11,24 @@ struct EditorContainerView: View {
         ZStack {
             NotesColors.editorBackground.ignoresSafeArea()
 
-            if appState.isFocusMode {
-                // Focus Mode: narrow centered column
-                HStack {
-                    Spacer()
-                    EditorWebView()
-                        .id(appState.preferences.language)
-                        .frame(maxWidth: 760)
-                    Spacer()
-                }
+            if appState.isEditorSleeping {
+                Text(appState.preferences.language == .english ? "Editor sleeping" : "编辑器已休眠")
+                    .foregroundStyle(.secondary)
             } else {
                 EditorWebView()
-                    .id(appState.preferences.language)
             }
         }
+        .onReceive(NotificationCenter.default.publisher(for: NSApplication.didBecomeActiveNotification)) { _ in
+            wakeEditor()
+        }
+        .onReceive(NotificationCenter.default.publisher(for: NSWindow.didDeminiaturizeNotification)) { _ in
+            if NSApp.isActive { wakeEditor() }
+        }
+    }
+
+    private func wakeEditor() {
+        appState.setBackgroundActivity(false)
+        appState.isEditorSleeping = false
     }
 }
 
@@ -39,7 +43,9 @@ struct EditorWebView: NSViewRepresentable {
 
     func makeNSView(context: Context) -> WKWebView {
         let config = WKWebViewConfiguration()
+        #if DEBUG
         config.preferences.setValue(true, forKey: "developerExtrasEnabled")
+        #endif
         config.setURLSchemeHandler(context.coordinator.resources, forURLScheme: EditorResources.imageScheme)
         config.userContentController.addUserScript(WKUserScript(
             source: "window.localImageScheme = 'markdownnotes-image';",
@@ -99,7 +105,28 @@ struct EditorWebView: NSViewRepresentable {
             object: nil
         )
 
+        for name in [NSApplication.didResignActiveNotification, NSApplication.didBecomeActiveNotification,
+                     NSApplication.didHideNotification, NSApplication.didUnhideNotification,
+                     NSWindow.didMiniaturizeNotification, NSWindow.didDeminiaturizeNotification] {
+            NotificationCenter.default.addObserver(context.coordinator, selector: #selector(Coordinator.handleActivity(_:)), name: name, object: nil)
+        }
+        context.coordinator.setForeground(NSApp.isActive)
         return webView
+    }
+
+    static func dismantleNSView(_ webView: WKWebView, coordinator: Coordinator) {
+        coordinator.cancelBackgroundSleep()
+        coordinator.isEditorReady = false
+        coordinator.isActive = false
+        NotificationCenter.default.removeObserver(coordinator)
+        webView.configuration.userContentController.removeAllScriptMessageHandlers()
+        webView.configuration.userContentController.removeAllUserScripts()
+        webView.navigationDelegate = nil
+        webView.stopLoading()
+        coordinator.webView = nil
+        coordinator.pendingContent = ""
+        coordinator.pendingDocumentID = nil
+        coordinator.resources.documentDirectory = nil
     }
 
     func updateNSView(_ webView: WKWebView, context: Context) {
@@ -119,13 +146,6 @@ struct EditorWebView: NSViewRepresentable {
             context.coordinator.currentIsTypewriterMode = appState.isTypewriterMode
             let twJS = appState.isTypewriterMode ? "window.editor?.setTypewriterMode(true)" : "window.editor?.setTypewriterMode(false)"
             webView.evaluateJavaScript(twJS, completionHandler: nil)
-        }
-
-        // Focus mode toggle (only when changed)
-        if context.coordinator.isFocusMode != appState.isFocusMode {
-            context.coordinator.isFocusMode = appState.isFocusMode
-            let focusJS = appState.isFocusMode ? "window.editor?.setFocusMode(true)" : "window.editor?.setFocusMode(false)"
-            webView.evaluateJavaScript(focusJS, completionHandler: nil)
         }
 
         // Theme change / Appearance change
@@ -168,10 +188,13 @@ struct EditorWebView: NSViewRepresentable {
         var pendingDocumentID: String?
         var exporter: DocumentExporter?
         var isEditorReady = false
+        var isActive = true
+        private(set) var isBackgrounded = false
+        private var backgroundTimer: Timer?
+        private var backgroundGeneration = 0
         var currentAppliedTheme: EditorTheme = .system
         var currentLanguage: AppLanguage = .simplifiedChinese
         var currentPreferences: Preferences
-        var isFocusMode: Bool = false
         var currentIsSourceMode: Bool = false
         var currentIsTypewriterMode: Bool = false
         private var cancellables = Set<AnyCancellable>()
@@ -181,9 +204,84 @@ struct EditorWebView: NSViewRepresentable {
             self.currentAppliedTheme = appState.effectiveTheme(for: nil)
             self.currentLanguage = appState.preferences.language
             self.currentPreferences = appState.preferences
-            self.isFocusMode = appState.isFocusMode
             self.currentIsSourceMode = appState.isSourceMode
             self.currentIsTypewriterMode = appState.isTypewriterMode
+        }
+
+        // Long-background hibernation releases the WebView after a recoverable snapshot.
+        @objc func handleActivity(_ notification: Notification) {
+            if let window = notification.object as? NSWindow, window !== webView?.window { return }
+            let minimized = webView?.window?.isMiniaturized ?? false
+            setForeground(NSApp.isActive && !NSApp.isHidden && !minimized)
+        }
+
+        func cancelBackgroundSleep() {
+            backgroundGeneration += 1
+            backgroundTimer?.invalidate()
+            backgroundTimer = nil
+        }
+
+        func setForeground(_ foreground: Bool, sleepDelay: TimeInterval = 300) {
+            cancelBackgroundSleep()
+            isBackgrounded = !foreground
+            if isEditorReady {
+                webView?.evaluateJavaScript("window.editor?.setBackgrounded(\(!foreground))", completionHandler: nil)
+            }
+            if !foreground { scheduleBackgroundSleep(after: sleepDelay) }
+        }
+
+        private func scheduleBackgroundSleep(after delay: TimeInterval) {
+            guard isActive, isBackgrounded else { return }
+            backgroundTimer = Timer.scheduledTimer(withTimeInterval: delay, repeats: false) { [weak self] _ in
+                Task { @MainActor in await self?.hibernateEditor() }
+            }
+            backgroundTimer?.tolerance = min(5, delay / 10)
+        }
+
+        func hibernateEditor() async {
+            guard isActive, isBackgrounded, !appState.isEditorSleeping else { return }
+            guard isEditorReady, exporter == nil, let webView else {
+                scheduleBackgroundSleep(after: 60)
+                return
+            }
+            let generation = backgroundGeneration
+            do {
+                guard let snapshot = try await webView.evaluateJavaScript("window.editor?.captureSession()") as? String,
+                      let data = snapshot.data(using: .utf8),
+                      let json = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+                      let id = json["documentID"] as? String,
+                      let state = json["state"] as? [String: Any], let content = state["doc"] as? String else {
+                    scheduleBackgroundSleep(after: 60) // Composition or an image import is still in flight.
+                    return
+                }
+                guard isActive, isBackgrounded, generation == backgroundGeneration,
+                      !appState.isEditorSleeping,
+                      id == appState.selectedFile?.url.path, exporter == nil else { return }
+                // A minimized secondary window must not suspend another active editor window.
+                if NSApp.isActive && NSApp.windows.contains(where: { $0.isVisible && !$0.isMiniaturized && $0 !== webView.window }) {
+                    scheduleBackgroundSleep(after: 60)
+                    return
+                }
+                let compressed = try (data as NSData).compressed(using: .lzfse) as Data
+                appState.contentDidChange(content)
+                appState.sleepingEditorSnapshot = compressed
+                appState.isEditorSleeping = true
+            } catch {
+                // Keep the live editor if capture/compression fails; never discard edits.
+                scheduleBackgroundSleep(after: 60)
+            }
+        }
+
+        private func restoreSleepingSession() {
+            guard let compressed = appState.sleepingEditorSnapshot,
+                  let data = try? (compressed as NSData).decompressed(using: .lzfse) as Data,
+                  let snapshot = String(data: data, encoding: .utf8),
+                  let encoded = try? JSONSerialization.data(withJSONObject: [snapshot]) else { return }
+            let argument = String(decoding: encoded, as: UTF8.self)
+            webView?.evaluateJavaScript("window.editor.restoreSession(\(argument)[0]); window.editor.setSourceMode(\(appState.isSourceMode))") { [weak self] _, error in
+                guard let self else { return }
+                if error == nil { self.appState.sleepingEditorSnapshot = nil }
+            }
         }
 
         // MARK: JS → Swift Messages
@@ -192,6 +290,7 @@ struct EditorWebView: NSViewRepresentable {
             didReceive message: WKScriptMessage
         ) {
             Task { @MainActor in
+                guard isActive else { return }
                 switch message.name {
                 case "contentChanged":
                     if let data = message.body as? [String: Any],
@@ -216,6 +315,7 @@ struct EditorWebView: NSViewRepresentable {
                     }
                 case "editorReady":
                     isEditorReady = true
+                    webView?.evaluateJavaScript("window.editor?.setBackgrounded(\(isBackgrounded))", completionHandler: nil)
                     syncDocument()
                     webView?.evaluateJavaScript("window.editor?.setSourceMode(\(appState.isSourceMode)); window.editor?.setTypewriterMode(\(appState.isTypewriterMode))", completionHandler: nil)
                     // Apply initial theme
@@ -225,6 +325,8 @@ struct EditorWebView: NSViewRepresentable {
                     let language = appState.preferences.language.rawValue
                     webView?.evaluateJavaScript("window.editor?.setTheme('\(themeVal)'); window.editor?.setLanguage('\(language)')", completionHandler: nil)
                     applyEditorPreferences()
+                    restoreSleepingSession()
+                    webView?.evaluateJavaScript("window.editor?.setBackgrounded(\(isBackgrounded))", completionHandler: nil)
                 case "imageDropped":
                     if let data = message.body as? [String: String] {
                         let name = data["name"] ?? "image-\(Int(Date().timeIntervalSince1970)).png"
@@ -462,10 +564,13 @@ struct EditorWebView: NSViewRepresentable {
         }
 
         private func copyHTML() {
-            guard let webView, let file = appState.selectedFile else { return }
+            guard let webView, let file = appState.selectedFile, exporter == nil else { return }
+            let job = DocumentExporter()
+            exporter = job
             Task { @MainActor in
+                defer { self.exporter = nil }
                 do {
-                    let html = try await DocumentExporter().html(from: webView, documentURL: file.url)
+                    let html = try await job.html(from: webView, documentURL: file.url)
                     NSPasteboard.general.clearContents()
                     NSPasteboard.general.setString(html, forType: .html)
                     NSPasteboard.general.setString(html, forType: .string)

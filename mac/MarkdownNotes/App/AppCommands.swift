@@ -105,12 +105,6 @@ struct AppCommands: Commands {
 
             Divider()
 
-            let (focusKey, focusMods) = sc("toggleFocusMode", "f", ["command", "control"])
-            Button(appState.isFocusMode ? t("退出专注模式", "Exit Focus Mode") : t("专注模式", "Focus Mode")) {
-                appState.isFocusMode.toggle()
-            }
-            .keyboardShortcut(focusKey, modifiers: focusMods)
-
             let (twKey, twMods) = sc("toggleTypewriter", "t", ["command", "shift"])
             Button(appState.isTypewriterMode ? t("关闭打字机模式", "Turn Off Typewriter Mode") : t("打字机模式", "Typewriter Mode")) {
                 appState.isTypewriterMode.toggle()

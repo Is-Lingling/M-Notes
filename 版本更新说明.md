@@ -1,13 +1,13 @@
 # M Notes 版本更新说明 (Release Notes)
 
-> **版本**：v1.0.0 (Build 11)  
+> **版本**：v1.0.6 (Build 10)  
 > **适用平台**：macOS 14.0 (Sonoma) 及更高版本 (Apple Silicon & Intel) / 扩展支持 Windows, Linux  
 > **发布日期**：2026年9月  
 > **发布包**：  
-> - **macOS 磁盘镜像 (推荐)**：`M-Notes-v1.0.0-macOS.dmg` (4.5 MB)  
-> - **macOS 绿色便携包**：`M-Notes-v1.0.0-macOS.zip` (4.3 MB)  
-> - **Windows 安装包**：`M-Notes-v1.0.0-windows-x64-setup.exe` (3.5 MB) / `.msi` (4.5 MB)  
-> - **Linux 安装包**：`m-notes_1.0.0_amd64.deb` (4.7 MB) / `.AppImage` (79.7 MB)  
+> - **macOS 磁盘镜像 (推荐)**：`M-Notes-v1.0.6-macOS.dmg` (4.5 MB)  
+> - **macOS 绿色便携包**：`M-Notes-v1.0.6-macOS.zip` (4.3 MB)  
+> - **Windows 安装包**：`M-Notes-v1.0.6-windows-x64-setup.exe` (3.5 MB) / `.msi` (4.5 MB)  
+> - **Linux 安装包**：`m-notes_1.0.6_amd64.deb` (4.7 MB) / `.AppImage` (79.7 MB)  
 
 ---
 
@@ -191,10 +191,10 @@
 
 | 平台 | 安装包名称 | 格式与架构 | 说明 |
 | :--- | :--- | :--- | :--- |
-| **macOS** | `M-Notes-v1.0.0-macOS.dmg` | DMG 磁盘镜像 (Universal) | 原生拖拽安装至 `/Applications` 文件夹 (4.5 MB) |
-| **macOS** | `M-Notes-v1.0.0-macOS.zip` | ZIP 便携压缩包 (Universal) | 解压即用 (4.3 MB) |
-| **Windows** | `M-Notes-v1.0.0-windows-x64-setup.exe` | NSIS 安装执行文件 (x64) | Windows 原生安装程序 (3.5 MB) |
-| **Windows** | `M-Notes-v1.0.0-windows-x64.msi` | MSI 安装包 (x64) | 企业级 Windows Installer (4.5 MB) |
-| **Linux** | `m-notes_1.0.0_amd64.deb` | DEB 软件包 (amd64) | 适用于 Ubuntu / Debian (4.7 MB) |
-| **Linux** | `m-notes_1.0.0_amd64.AppImage` | AppImage 独立运行包 (x86_64) | 免安装赋予执行权限直接运行 (79.7 MB) |
+| **macOS** | `M-Notes-v1.0.6-macOS.dmg` | DMG 磁盘镜像 (Universal) | 原生拖拽安装至 `/Applications` 文件夹 (4.5 MB) |
+| **macOS** | `M-Notes-v1.0.6-macOS.zip` | ZIP 便携压缩包 (Universal) | 解压即用 (4.3 MB) |
+| **Windows** | `M-Notes-v1.0.6-windows-x64-setup.exe` | NSIS 安装执行文件 (x64) | Windows 原生安装程序 (3.5 MB) |
+| **Windows** | `M-Notes-v1.0.6-windows-x64.msi` | MSI 安装包 (x64) | 企业级 Windows Installer (4.5 MB) |
+| **Linux** | `m-notes_1.0.6_amd64.deb` | DEB 软件包 (amd64) | 适用于 Ubuntu / Debian (4.7 MB) |
+| **Linux** | `m-notes_1.0.6_amd64.AppImage` | AppImage 独立运行包 (x86_64) | 免安装赋予执行权限直接运行 (79.7 MB) |
 

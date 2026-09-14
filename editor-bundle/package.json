@@ -1,12 +1,12 @@
 {
   "name": "markdownnotes-editor",
-  "version": "1.0.0",
+  "version": "1.0.6",
   "private": true,
   "description": "CodeMirror 6 bundle for MarkdownNotes editor",
   "scripts": {
     "build": "esbuild src/index.js --bundle --format=iife --global-name=CM --minify --outfile=../MarkdownNotes/Editor/codemirror/codemirror-bundle.js",
     "build:dev": "esbuild src/index.js --bundle --format=iife --global-name=CM --sourcemap --outfile=../MarkdownNotes/Editor/codemirror/codemirror-bundle.js",
-    "test": "node tests/editor.cjs && node tests/interactions.cjs && node tests/selection.cjs && node tests/diagram-math.cjs"
+    "test": "node tests/editor.cjs && node tests/interactions.cjs && node tests/selection.cjs && node tests/image-selection.cjs && node tests/line-numbers.cjs && node tests/diagram-math.cjs && node tests/memory.cjs"
   },
   "dependencies": {
     "@codemirror/commands": "^6.7.1",

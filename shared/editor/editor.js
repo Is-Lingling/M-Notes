@@ -126,8 +126,8 @@ function markdownItMermaid(md) {
       const id = `mermaid_${idx}_${Date.now()}`;
       setTimeout(() => {
         const el = document.getElementById(id);
-        if (el && typeof mermaid !== "undefined") {
-          mermaid.render(`svg_${id}`, token.content.trim()).then(({ svg }) => {
+        if (el) {
+          renderMermaid(`svg_${id}`, token.content.trim()).then(({ svg }) => {
             el.innerHTML = svg;
           }).catch(e => {
             const tempErr = document.getElementById(`dsvg_${id}`);
@@ -143,14 +143,39 @@ function markdownItMermaid(md) {
 }
 
 // ============================================================
-// Mermaid Init
+// Mermaid is optional: ordinary Markdown/TXT does not need its parser/runtime.
+// Share one in-flight load, and allow retry after a failed resource load.
 // ============================================================
-mermaid.initialize({
-  startOnLoad: false,
-  theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default",
-  securityLevel: "loose",
-  fontFamily: "-apple-system, 'SF Pro Text', sans-serif",
-});
+let mermaidLoadPromise = null;
+function configureMermaid() {
+  window.mermaid?.initialize({
+    startOnLoad: false,
+    theme: window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "default",
+    securityLevel: "loose",
+    fontFamily: "-apple-system, 'SF Pro Text', sans-serif",
+  });
+}
+function ensureMermaid() {
+  if (window.mermaid) return Promise.resolve(window.mermaid);
+  if (!mermaidLoadPromise) {
+    mermaidLoadPromise = new Promise((resolve, reject) => {
+      const script = document.createElement("script");
+      script.src = "mermaid/mermaid.min.js";
+      script.onload = () => {
+        if (!window.mermaid) { script.remove(); reject(new Error("Mermaid did not initialize")); return; }
+        configureMermaid();
+        resolve(window.mermaid);
+      };
+      script.onerror = () => { script.remove(); reject(new Error("Unable to load Mermaid")); };
+      document.head.appendChild(script);
+    }).catch(error => { mermaidLoadPromise = null; throw error; });
+  }
+  return mermaidLoadPromise;
+}
+async function renderMermaid(id, code) {
+  const renderer = await ensureMermaid();
+  return renderer.render(id, code);
+}
 
 // ============================================================
 // WYSIWYG Editor State
@@ -158,7 +183,8 @@ mermaid.initialize({
 let editorState = {
   content: "",
   isSourceMode: false,
-  isFocusMode: false,
+  backgrounded: false,
+  hostBackgrounded: false,
   isTypewriterMode: false,
   isReady: false,
   language: "zh-Hans",
@@ -169,7 +195,7 @@ const uiStrings = {
   "zh-Hans": {
     taskDone: "点击标记为未完成", taskOpen: "点击标记为完成", editMath: "点击编辑公式源码", editMermaid: "点击编辑图表源码",
     selectCode: "点击选中整个代码块，按 Delete 删除", copy: "复制", copied: "已复制 ✓",
-    imagePath: "点击显示图片路径", imageMissing: "无法加载图片", imageHint: "点击检查或修改图片路径",
+    imagePath: "点击选中图片并显示路径，按 Delete 删除", imageMissing: "无法加载图片", imageHint: "点击选中并显示图片路径",
     imagePathLabel: "图片文件路径", tableActions: "表格操作", selectTable: "点击空白处选中整个表格，按 Delete 删除",
     addRow: "＋ 行", addRowTitle: "在当前行下方插入行 · ⌘⌥↓", removeRow: "− 行", removeRowTitle: "删除当前内容行 · ⌘⌥⌫",
     addColumn: "＋ 列", addColumnTitle: "在当前列右侧插入列 · ⌘⌥→", removeColumn: "− 列", removeColumnTitle: "删除当前列 · ⌘⌥⇧⌫",
@@ -178,7 +204,7 @@ const uiStrings = {
   en: {
     taskDone: "Mark as incomplete", taskOpen: "Mark as complete", editMath: "Edit equation source", editMermaid: "Click to edit diagram source",
     selectCode: "Select this code block; press Delete to remove it", copy: "Copy", copied: "Copied ✓",
-    imagePath: "Show image path", imageMissing: "Image unavailable", imageHint: "Check or edit the image path",
+    imagePath: "Click to select and show path; Delete to remove", imageMissing: "Image unavailable", imageHint: "Click to select and show the image path",
     imagePathLabel: "Image file path", tableActions: "Table actions", selectTable: "Select this table; press Delete to remove it",
     addRow: "+ Row", addRowTitle: "Insert a row below · ⌘⌥↓", removeRow: "− Row", removeRowTitle: "Delete current row · ⌘⌥⌫",
     addColumn: "+ Column", addColumnTitle: "Insert a column to the right · ⌘⌥→", removeColumn: "− Column", removeColumnTitle: "Delete current column · ⌘⌥⇧⌫",
@@ -196,7 +222,7 @@ function ui(key, ...args) {
 const { EditorView, keymap, highlightSpecialChars, drawSelection,
         dropCursor, rectangularSelection, crosshairCursor,
         highlightActiveLine, highlightActiveLineGutter,
-        lineNumbers, Decoration, ViewPlugin, WidgetType } = CM.view;
+        lineNumbers, lineNumberWidgetMarker, GutterMarker, Decoration, ViewPlugin, WidgetType } = CM.view;
 const { EditorState, StateEffect, StateField, Compartment, RangeSetBuilder } = CM.state;
 const { defaultKeymap, historyKeymap, history } = CM.commands;
 const { markdown, markdownLanguage } = CM.lang_markdown;
@@ -268,6 +294,7 @@ const markdownHighlight = HighlightStyle.define([
 const lineNumbersComp = new Compartment();
 const readOnlyComp = new Compartment();
 const languageComp = new Compartment();
+const historyComp = new Compartment();
 const revealLine = StateEffect.define();
 const editingLine = StateField.define({
   create: state => (state?.selection?.main ? state.selection.main.head : 0),
@@ -278,14 +305,22 @@ const editingLine = StateField.define({
   },
 });
 function selectBlock(view, from, to) {
-  const end = to < view.state.doc.length && view.state.doc.sliceString(to, to + 1) === "\n" ? to + 1 : to;
-  view.dispatch({ selection: { anchor: from, head: end }, userEvent: "select.block" });
+  view.dispatch({ selection: { anchor: from, head: to }, userEvent: "select.block" });
   view.focus();
 }
 
 // ============================================================
 // Typora Interactive Widgets (Checklist, Math, Code Header)
 // ============================================================
+
+// Keep block margins inside the DOM that CodeMirror measures. External vertical
+// margins are absent from its height map, shifting gutters and pointer hit testing.
+function measuredBlockWidget(content) {
+  const outer = document.createElement("div");
+  outer.className = "cm-measured-block";
+  outer.appendChild(content);
+  return outer;
+}
 
 // 1. 原生备忘录琥珀黄圆圈任务列表 Widget
 class TaskWidget extends WidgetType {
@@ -353,7 +388,7 @@ class MathWidget extends WidgetType {
       });
       view.focus();
     });
-    return el;
+    return this.isBlock ? measuredBlockWidget(el) : el;
   }
   ignoreEvent() { return true; }
 }
@@ -392,26 +427,35 @@ class MermaidWidget extends WidgetType {
       view.focus();
     });
 
-    if (typeof mermaid === "undefined") {
-      container.innerHTML = `<pre class="mermaid-raw">${md.utils.escapeHtml(this.code)}</pre>`;
-      return wrap;
-    }
-
     const id = "mmd_" + Math.random().toString(36).slice(2, 10);
     try {
-      mermaid.render(id, this.code).then(({ svg }) => {
+      renderMermaid(id, this.code).then(({ svg }) => {
         container.innerHTML = svg;
+        view.requestMeasure();
       }).catch((err) => {
         const tempErr = document.getElementById("d" + id);
         if (tempErr) tempErr.remove();
         container.innerHTML = `<div class="cm-mermaid-error"><div style="font-weight:600;margin-bottom:6px;color:var(--danger,#e11d48)">⚠️ Mermaid 图表解析错误</div><pre style="margin:0;font-size:12px;white-space:pre-wrap">${md.utils.escapeHtml(err.message || String(err))}</pre></div>`;
+        view.requestMeasure();
       });
     } catch (err) {
       container.innerHTML = `<div class="cm-mermaid-error"><pre style="margin:0;font-size:12px;white-space:pre-wrap">${md.utils.escapeHtml(err.message || String(err))}</pre></div>`;
     }
 
-    return wrap;
+    return measuredBlockWidget(wrap);
   }
+  ignoreEvent() { return true; }
+}
+
+// A closing fence belongs to the source selection, but has no preview row.
+class HiddenFenceWidget extends WidgetType {
+  eq() { return true; }
+  toDOM() {
+    const el = document.createElement("div");
+    el.className = "cm-hidden-fence";
+    return el;
+  }
+  get estimatedHeight() { return 0; }
   ignoreEvent() { return true; }
 }
 
@@ -462,7 +506,15 @@ class CodeHeaderWidget extends WidgetType {
   ignoreEvent() { return true; }
 }
 
-// 4. 图片即时渲染 Widget（点击就地定位光标展开源码供编辑）
+// Whitespace around an image-only source line must not push a full-width
+// inline widget onto a second visual row. Preserve it in the document.
+function hideImageIndent(items, line, from, to) {
+  if (line.text.slice(0, from - line.from).trim() || line.text.slice(to - line.from).trim()) return;
+  if (from > line.from) items.push({ from: line.from, to: from, deco: Decoration.replace({}) });
+  if (to < line.to) items.push({ from: to, to: line.to, deco: Decoration.replace({}) });
+}
+
+// 4. 图片即时渲染 Widget（单击选中完整语法并显示路径浮层）
 class ImageWidget extends WidgetType {
   constructor(alt, src, from, to) {
     super();
@@ -477,6 +529,8 @@ class ImageWidget extends WidgetType {
   toDOM(view) {
     const wrap = document.createElement("span");
     wrap.className = "cm-image-widget";
+    wrap.dataset.imageFrom = this.from;
+    wrap.dataset.imageTo = this.to;
     wrap.title = ui("imagePath");
 
     let resolvedSrc = (this.src || "").trim();
@@ -534,9 +588,9 @@ class ImageWidget extends WidgetType {
       e.stopPropagation();
       if (e.target === path) return;
       e.preventDefault();
-      path.hidden = false;
-      path.focus();
-      view.requestMeasure();
+      const from = view.posAtDOM(wrap);
+      view.dispatch({ selection: { anchor: from, head: from + this.to - this.from }, userEvent: "select.image" });
+      view.focus();
     });
     path.addEventListener("keydown", e => {
       e.stopPropagation();
@@ -615,6 +669,7 @@ class TableWidget extends WidgetType {
   constructor(model) { super(); this.model = model; }
   eq(other) { return this.model.from === other.model.from && this.model.source === other.model.source; }
   updateDOM(dom) {
+    dom = dom.firstElementChild;
     const old = dom._tableModel;
     if (old.rows.length !== this.model.rows.length || old.separators.length !== this.model.separators.length) return false;
     dom._tableModel = this.model;
@@ -733,10 +788,10 @@ class TableWidget extends WidgetType {
       });
     });
     updateTableButtons(wrap);
-    return wrap;
+    return measuredBlockWidget(wrap);
   }
   ignoreEvent() { return true; }
-  get estimatedHeight() { return 34 + this.model.rows.length * 38; }
+  get estimatedHeight() { return 50 + this.model.rows.length * 38; }
 }
 
 function updateTableButtons(wrap) {
@@ -929,7 +984,7 @@ const previewBuilder = new (class {
   }
 
   buildDecorations(state) {
-    if (editorState.isSourceMode) {
+    if (editorState.backgrounded || editorState.isSourceMode) {
       return Decoration.none;
     }
 
@@ -1075,19 +1130,12 @@ const previewBuilder = new (class {
             }
           } else if (fenceCloseMatch) {
             inCodeBlock = false;
-            lineDeco = Decoration.line({ class: "cm-code-block-line cm-code-block-last" });
-
-            // 当光标离开代码块尾行时，平滑隐藏 ``` fence 标记
-            if (!isActive && line.from < line.to) {
-              lineItems.push({
-                from: line.from,
-                to: line.to,
-                deco: Decoration.mark({ class: "cm-md-syntax-hidden" }),
-              });
-            }
+            builder.add(line.from, line.to, Decoration.replace({ widget: new HiddenFenceWidget(), block: true }));
+            pos = line.to + 1;
+            continue;
           } else if (inCodeBlock) {
-            // 代码块内部内容行：保留代码块背景与边框，不解析任何行内 Markdown 标记
-            lineDeco = Decoration.line({ class: "cm-code-block-line" });
+            const nextIsFence = line.number < state.doc.lines && /^```\s*$/.test(state.doc.line(line.number + 1).text);
+            lineDeco = Decoration.line({ class: "cm-code-block-line" + (nextIsFence ? " cm-code-block-last" : "") });
           }
 
           // 2. 标题行识别（仅非代码块时）
@@ -1168,6 +1216,7 @@ const previewBuilder = new (class {
                 imgRanges.push([imgM.index, imgM.index + imgM[0].length]);
                 const imgStart = line.from + imgM.index;
                 const imgEnd = imgStart + imgM[0].length;
+                hideImageIndent(lineItems, line, imgStart, imgEnd);
                 const altText = imgM[1];
                 const imgSrc = imgM[2];
                 lineItems.push({
@@ -1188,6 +1237,7 @@ const previewBuilder = new (class {
                 imgRanges.push([htmlImgM.index, htmlImgM.index + htmlImgM[0].length]);
                 const imgStart = line.from + htmlImgM.index;
                 const imgEnd = imgStart + htmlImgM[0].length;
+                hideImageIndent(lineItems, line, imgStart, imgEnd);
                 const imgSrc = htmlImgM[1];
                 const altMatch = htmlImgM[0].match(/alt=["']([^"']*)["']/i);
                 const altText = altMatch ? altMatch[1] : "";
@@ -1393,15 +1443,32 @@ const typoraLivePreviewPlugin = StateField.define({
   provide: field => EditorView.decorations.from(field),
 });
 
+// Rendered multi-line blocks represent a source range, not a single text row.
+class BlockLineNumber extends GutterMarker {
+  constructor(first, last) { super(); this.first = first; this.last = last; }
+  eq(other) { return this.first === other.first && this.last === other.last; }
+  toDOM() {
+    const el = document.createElement("span");
+    el.textContent = this.first === this.last ? String(this.first) : `${this.first}–${this.last}`;
+    return el;
+  }
+}
+function editorLineNumbers() {
+  return [lineNumbers(), highlightActiveLineGutter(), lineNumberWidgetMarker.of((view, widget, block) => {
+    if (!(widget instanceof TableWidget || widget instanceof MathWidget || widget instanceof MermaidWidget)) return null;
+    return new BlockLineNumber(view.state.doc.lineAt(block.from).number, view.state.doc.lineAt(block.to).number);
+  })];
+}
+
 // ============================================================
 // Create Editor
 // ============================================================
-function createEditor(content) {
-  const startState = EditorState.create({
+function createEditorState(content, serialized = null) {
+  const config = {
     doc: content,
     extensions: [
       // Core
-      history(),
+      historyComp.of(history()),
       drawSelection(),
       dropCursor(),
       EditorState.allowMultipleSelections.of(true),
@@ -1437,7 +1504,7 @@ function createEditor(content) {
       typoraLivePreviewPlugin,
 
       // Language & highlighting
-      languageComp.of(markdownLanguageSupport()),
+      languageComp.of(window.editor?.plainText ? [] : markdownLanguageSupport()),
       syntaxHighlighting(markdownHighlight),
       syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
 
@@ -1498,10 +1565,14 @@ function createEditor(content) {
         scroll(e) { handleScroll(e); },
       }),
     ],
-  });
-
+  };
+  return serialized
+    ? EditorState.fromJSON(serialized, config, { history: CM.commands.historyField })
+    : EditorState.create(config);
+}
+function createEditor(content) {
   const view = new EditorView({
-    state: startState,
+    state: createEditorState(content),
     parent: document.getElementById("editor-root"),
   });
 
@@ -1513,20 +1584,42 @@ function createEditor(content) {
 // ============================================================
 let updateTimer = null;
 function onEditorUpdate(update) {
-  if (update.selectionSet || update.docChanged) {
+  if (update.selectionSet || update.docChanged || update.viewportChanged || update.transactions.some(transaction => transaction.reconfigured)) {
     const selected = update.state.selection.main;
-    update.view.dom.querySelectorAll("[data-block-from], [data-table-from]").forEach(el => {
-      const from = +(el.dataset.blockFrom ?? el.dataset.tableFrom);
-      const to = +(el.dataset.blockTo ?? el._tableModel?.to);
-      const target = el.dataset.blockFrom ? el.parentElement : el;
-      target.classList.toggle("cm-block-selected", !selected.empty && selected.from <= from && selected.to >= to);
+    let codeBlock = syntaxTree(update.state).resolveInner(selected.from, 1);
+    while (codeBlock && codeBlock.name !== "FencedCode") codeBlock = codeBlock.parent;
+    const insideCode = !editorState.isSourceMode && !selected.empty && !!codeBlock && selected.to <= codeBlock.to;
+    const wholeCode = insideCode && selected.from === codeBlock.from && selected.to === codeBlock.to;
+    const insideMath = !editorState.isSourceMode && !selected.empty && !insideCode &&
+      previewBuilder.findBlockMathRanges(update.state).some(block => selected.from >= block.from && selected.to <= block.to);
+    update.view.dom.classList.toggle("cm-code-block-selection", wholeCode);
+    update.view.dom.classList.toggle("cm-code-text-selection", insideCode && !wholeCode);
+    update.view.dom.classList.toggle("cm-math-text-selection", insideMath);
+    update.view.contentDOM.querySelectorAll(".cm-code-block-line").forEach(line => {
+      const position = update.view.posAtDOM(line);
+      line.classList.toggle("cm-code-selected", wholeCode && position >= codeBlock.from && position < codeBlock.to);
     });
+    let wholeTable = false;
+    update.view.dom.querySelectorAll("[data-block-from], [data-table-from], [data-image-from]").forEach(el => {
+      const from = +(el.dataset.blockFrom ?? el.dataset.tableFrom ?? el.dataset.imageFrom);
+      const to = +(el.dataset.blockTo ?? el._tableModel?.to ?? el.dataset.imageTo);
+      const target = el.dataset.blockFrom ? el.parentElement : el;
+      const isSelected = !selected.empty && selected.from <= from && selected.to >= to;
+      target.classList.toggle("cm-block-selected", isSelected);
+      if (el.dataset.tableFrom != null && selected.from === from && selected.to === to) wholeTable = true;
+      if (el.dataset.imageFrom != null) {
+        const path = el.querySelector(".cm-image-path");
+        path.hidden = !isSelected;
+      }
+    });
+    update.view.dom.classList.toggle("cm-table-block-selection", wholeTable);
     handleScroll();
   }
   if (update.docChanged) {
     if (!window.editor.loadingContent) swift.send("contentChanged", { content: update.state.doc.toString(), documentID: window.editor.documentID || "" });
     for (const [id, pos] of pendingImages) pendingImages.set(id, update.changes.mapPos(pos, 1));
     clearTimeout(updateTimer);
+    if (editorState.backgrounded) return;
     updateTimer = setTimeout(() => {
       const content = update.state.doc.toString();
       editorState.content = content;
@@ -1590,11 +1683,12 @@ function updateOutline(text) {
 // a floating overlay or use CM6 decorations.
 // ============================================================
 function renderWYSIWYGWidgets() {
+  if (editorState.backgrounded) return;
   // Re-render mermaid diagrams in the document
   const mermaidEls = document.querySelectorAll(".md-mermaid[data-content]");
   mermaidEls.forEach(el => {
     const content = el.dataset.content;
-    mermaid.render("svg-" + Date.now(), content).then(({ svg }) => {
+    renderMermaid("svg-" + Date.now(), content).then(({ svg }) => {
       el.innerHTML = svg;
     }).catch(() => {});
   });
@@ -1898,6 +1992,7 @@ function reportReadingPosition() {
 }
 function handleScroll() {
   clearTimeout(readingTimer);
+  if (editorState.backgrounded) return;
   readingTimer = setTimeout(reportReadingPosition, 120);
 }
 function markdownLanguageSupport() {
@@ -1930,6 +2025,7 @@ window.editor = {
   },
 
   openDocument(markdown, documentID, position = {}, plainText = false) {
+    const switchingDocument = this.documentID !== documentID;
     if (this._view && this.documentID && this.documentID !== documentID) {
       const v = this._view;
       swift.send("scrollInfo", {
@@ -1954,19 +2050,23 @@ window.editor = {
     this.loadingContent = true;
 
     try {
+      // Drop old-document undo records instead of retaining every previously opened file.
+      if (switchingDocument) this._view.dispatch({ effects: historyComp.reconfigure([]) });
       const curLen = this._view.state.doc.length;
       const anchor = Math.min(position.anchor ?? 0, markdown.length);
       const effects = [
         languageComp.reconfigure(plainText ? [] : markdownLanguageSupport()),
         lineNumbersComp.reconfigure(
-          editorState.preferences.showLineNumbers ? [lineNumbers(), highlightActiveLineGutter()] : []
+          editorState.preferences.showLineNumbers ? editorLineNumbers() : []
         ),
         revealLine.of(anchor)
       ];
+      if (switchingDocument) effects.push(historyComp.reconfigure(history()));
 
       this._view.dispatch({
         changes: { from: 0, to: curLen, insert: markdown },
         selection: { anchor },
+        annotations: CM.state.Transaction.addToHistory.of(false),
         effects: effects
       });
     } finally {
@@ -2027,7 +2127,7 @@ a { color: #007AFF; }
       const diagrams = md.parse(this.getContent(), {}).filter(t => t.type === "fence" && t.info.trim() === "mermaid");
       const targets = root.querySelectorAll(".md-mermaid");
       for (let i = 0; i < targets.length; i++) {
-        try { targets[i].innerHTML = (await mermaid.render(`export-diagram-${Date.now()}-${i}`, diagrams[i].content)).svg; }
+        try { targets[i].innerHTML = (await renderMermaid(`export-diagram-${Date.now()}-${i}`, diagrams[i].content)).svg; }
         catch (_) { targets[i].textContent = diagrams[i]?.content || ui("diagramError"); }
       }
     }
@@ -2063,7 +2163,7 @@ a { color: #007AFF; }
     if (this._view) {
       this._view.dispatch({
         effects: lineNumbersComp.reconfigure(
-          editorState.preferences.showLineNumbers ? [lineNumbers(), highlightActiveLineGutter()] : []
+          editorState.preferences.showLineNumbers ? editorLineNumbers() : []
         ),
       });
     }
@@ -2077,10 +2177,46 @@ a { color: #007AFF; }
     document.getElementById("editor-root").classList.toggle("typewriter-mode", enabled);
   },
 
-  // ── Focus mode ──
-  setFocusMode(enabled) {
-    editorState.isFocusMode = enabled;
-    document.getElementById("editor-root").classList.toggle("focus-mode", enabled);
+  setBackgrounded(backgrounded) {
+    editorState.hostBackgrounded = backgrounded;
+    backgrounded = backgrounded || document.hidden;
+    if (editorState.backgrounded === backgrounded) return;
+    if (backgrounded) reportReadingPosition();
+    editorState.backgrounded = backgrounded;
+    document.documentElement.classList.toggle("backgrounded", backgrounded);
+    clearTimeout(updateTimer);
+    clearTimeout(readingTimer);
+    if (!backgrounded && this._view) {
+      updateOutline(this.getContent());
+      updateWordCount(this.getContent());
+      this._view.dispatch({ effects: revealLine.of(this._view.state.selection.main.head) });
+      this._view.requestMeasure();
+    }
+  },
+
+  captureSession() {
+    if (!this._view || this._view.composing || pendingImages.size) return null;
+    return JSON.stringify({
+      version: 1, documentID: this.documentID,
+      state: this._view.state.toJSON({ history: CM.commands.historyField }),
+      scrollTop: this._view.scrollDOM.scrollTop,
+      sourceMode: editorState.isSourceMode,
+    });
+  },
+
+  restoreSession(serialized) {
+    const session = JSON.parse(serialized);
+    // An external edit or a different document takes precedence over the old snapshot.
+    if (session.version !== 1 || session.documentID !== this.documentID || session.state.doc !== this.getContent()) return false;
+    this.loadingContent = true;
+    try {
+      editorState.isSourceMode = session.sourceMode || !!this.plainText;
+      document.body.classList.toggle("source-mode", editorState.isSourceMode);
+      this._view.setState(createEditorState(session.state.doc, session.state));
+    } finally { this.loadingContent = false; }
+    const view = this._view;
+    requestAnimationFrame(() => { view.scrollDOM.scrollTop = session.scrollTop; view.requestMeasure(); });
+    return true;
   },
 
   // ── Load custom CSS theme (instant 0ms switching) ──
@@ -2145,7 +2281,7 @@ a { color: #007AFF; }
       this._view.contentDOM.setAttribute("autocorrect", preferences.spellCheck === false ? "off" : "on");
       this._view.dispatch({
         effects: lineNumbersComp.reconfigure(
-          editorState.preferences.showLineNumbers ? [lineNumbers(), highlightActiveLineGutter()] : []
+          editorState.preferences.showLineNumbers ? editorLineNumbers() : []
         )
       });
       this._view.requestMeasure();
@@ -2489,14 +2625,15 @@ function scrollToHeading(view, headingId) {
 // ============================================================
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", (e) => {
   // Reinit mermaid with correct theme
-  mermaid.initialize({
-    startOnLoad: false,
-    theme: e.matches ? "dark" : "default",
-  });
+  configureMermaid();
 
   // Switch highlight.js theme
   document.getElementById("hljs-light-theme").disabled = e.matches;
   document.getElementById("hljs-dark-theme").disabled = !e.matches;
+});
+
+document.addEventListener("visibilitychange", () => {
+  window.editor?.setBackgrounded(editorState.hostBackgrounded);
 });
 
 // ============================================================
@@ -2518,7 +2655,7 @@ document.addEventListener("DOMContentLoaded", () => {
   swift.send("editorReady", true);
 
   // Focus editor
-  setTimeout(() => view.focus(), 100);
+  setTimeout(() => { if (!editorState.backgrounded && !document.hidden) view.focus(); }, 100);
 });
 
 // ============================================================
@@ -2561,7 +2698,8 @@ function createFallbackEditor() {
     },
     setSourceMode() {},
     setTypewriterMode() {},
-    setFocusMode() {},
+    setBackgrounded() {},
+    captureSession() { return null; },
     execCommand() {},
     insertAtCursor(text) {
       const pos = ta.selectionStart;

@@ -1,68 +1,135 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="zh-CN">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>M Notes</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
-    html, body { width: 100%; height: 100%; overflow: hidden; font-family: "Segoe UI", sans-serif; background: #ffffff; }
-    @media (prefers-color-scheme: dark) {
-      body { background: #181818; color: #ffffff; }
-    }
-    #titlebar {
-      height: 36px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 12px;
-      background: rgba(243, 243, 243, 0.85);
-      backdrop-filter: blur(16px);
-      border-bottom: 1px solid rgba(0, 0, 0, 0.08);
-      font-size: 12px;
-      color: #555;
-    }
-    @media (prefers-color-scheme: dark) {
-      #titlebar { background: rgba(32, 32, 32, 0.85); border-bottom-color: rgba(255, 255, 255, 0.08); color: #aaa; }
-    }
-    .title-text { font-weight: 600; color: inherit; }
-    .toolbar-actions { display: flex; gap: 8px; }
-    .btn {
-      padding: 4px 10px;
-      border-radius: 4px;
-      border: 1px solid rgba(0, 0, 0, 0.12);
-      background: #ffffff;
-      color: inherit;
-      cursor: pointer;
-      font-size: 12px;
-    }
-    .btn:hover { background: rgba(0, 0, 0, 0.04); }
-    @media (prefers-color-scheme: dark) {
-      .btn { background: #282828; border-color: rgba(255, 255, 255, 0.15); }
-      .btn:hover { background: rgba(255, 255, 255, 0.08); }
-    }
-    #editor-frame {
-      width: 100%;
-      height: calc(100% - 36px);
-      border: none;
-    }
-  </style>
-</head>
-<body>
-  <div id="titlebar">
-    <div class="toolbar-actions">
-      <button class="btn" id="btn-open">打开 (Ctrl+O)</button>
-      <button class="btn" id="btn-save">保存 (Ctrl+S)</button>
-      <button class="btn" id="btn-new">新建 (Ctrl+N)</button>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>M Notes</title>
+    <link rel="stylesheet" href="desktop.css" />
+  </head>
+  <body>
+    <header>
+      <div class="brand">
+        <span class="logo">M</span><strong>M Notes</strong
+        ><span class="platform" id="platform"></span>
+      </div>
+      <div class="document">
+        <strong id="doc-title">未命名.md</strong
+        ><span id="save-state">正在加载编辑器…</span>
+      </div>
+      <button id="btn-settings" title="编辑器设置">设置</button>
+    </header>
+    <nav aria-label="文件操作">
+      <button
+        id="btn-sidebar"
+        title="显示/隐藏大纲 (Ctrl+\\)"
+        aria-expanded="true"
+      >
+        ☰</button
+      ><button id="btn-new" title="Ctrl+N">新建</button
+      ><button id="btn-open" title="Ctrl+O">打开…</button
+      ><button id="btn-save" class="primary" title="Ctrl+S">保存</button
+      ><button id="btn-save-as" title="Ctrl+Shift+S">另存为…</button
+      ><button id="btn-export">导出 HTML</button><span class="spacer"></span
+      ><button id="btn-search" title="Ctrl+F / Ctrl+H">查找 / 替换</button
+      ><button id="btn-source" aria-pressed="false">源码</button>
+    </nav>
+    <div id="formatbar" role="toolbar" aria-label="Markdown 格式">
+      <button data-command="h1" title="一级标题">H1</button
+      ><button data-command="h2" title="二级标题">H2</button
+      ><button data-command="bold" title="粗体 (Ctrl+B)"><b>B</b></button
+      ><button data-command="italic" title="斜体 (Ctrl+I)"><i>I</i></button
+      ><button data-command="strikethrough" title="删除线"><s>S</s></button
+      ><span class="divider"></span><button data-command="ul">列表</button
+      ><button data-command="ol">编号</button
+      ><button data-command="task">待办</button
+      ><button data-command="quote">引用</button
+      ><button data-command="link">链接</button
+      ><button id="btn-image">图片</button
+      ><button data-command="inlineCode">行内代码</button
+      ><button data-command="codeBlock">代码块</button
+      ><button data-command="table">表格</button
+      ><button data-command="math">公式</button
+      ><button data-command="hr">分隔线</button>
     </div>
-    <span class="title-text" id="doc-title">M Notes - Untitled.md</span>
-    <div class="toolbar-actions">
-      <button class="btn" id="btn-theme">切换主题</button>
-    </div>
-  </div>
-
-  <iframe id="editor-frame" src="editor/editor.html"></iframe>
-
-  <script src="main.js"></script>
-</body>
+    <section id="searchbar" hidden aria-label="查找替换">
+      <label>查找 <input id="query" placeholder="输入查找内容" /></label
+      ><label>替换 <input id="replacement" placeholder="替换为" /></label
+      ><label><input id="match-case" type="checkbox" />区分大小写</label
+      ><button data-search="findPrev" aria-label="上一个匹配">↑</button
+      ><button data-search="findNext" aria-label="下一个匹配">↓</button
+      ><button data-search="replaceNext">替换</button
+      ><button data-search="replaceAll">全部替换</button
+      ><button id="close-search" aria-label="关闭查找">×</button>
+    </section>
+    <main>
+      <aside id="sidebar">
+        <div class="sidebar-heading">
+          文档大纲 <span id="heading-count">0</span>
+        </div>
+        <div id="outline">
+          <p class="empty">添加标题后，即可在这里导航。</p>
+        </div>
+        <div class="sidebar-footer">
+          本地编辑 · Markdown / TXT<br />Ctrl+S 保存文档
+        </div>
+      </aside>
+      <section class="editor-area" aria-label="文档编辑区">
+        <iframe
+          id="editor-frame"
+          title="Markdown 编辑器"
+          sandbox="allow-scripts allow-same-origin"
+          src="editor/editor.html"
+        ></iframe>
+      </section>
+    </main>
+    <footer>
+      <span id="file-type">Markdown</span
+      ><span id="statistics">0 字符 · 1 行</span><span class="spacer"></span
+      ><span id="status" role="status" aria-live="polite">准备就绪</span
+      ><span>UTF-8</span>
+    </footer>
+    <dialog id="settings">
+      <form method="dialog">
+        <h2>编辑器设置</h2>
+        <p>让书写更符合你的习惯。</p>
+        <label
+          >外观主题<select id="theme">
+            <option value="system">跟随系统</option>
+            <option value="liquid-glass-light">明亮</option>
+            <option value="liquid-glass-dark">深色</option>
+            <option value="github-light">GitHub Light</option>
+            <option value="github-dark">GitHub Dark</option>
+            <option value="dracula">Dracula</option>
+            <option value="solarized">Solarized</option>
+          </select></label
+        ><label
+          >字体大小<select id="font-size">
+            <option>14</option>
+            <option>16</option>
+            <option>18</option>
+            <option>20</option>
+            <option>24</option>
+          </select></label
+        ><label
+          ><span>显示行号</span
+          ><input type="checkbox" id="line-numbers" /></label
+        ><label
+          ><span>打字机模式</span><input type="checkbox" id="typewriter"
+        /></label>
+        <div class="dialog-actions"><button class="primary">完成</button></div>
+      </form>
+    </dialog>
+    <dialog id="unsaved">
+      <form method="dialog">
+        <h2>保存当前更改？</h2>
+        <p id="unsaved-description">当前文档有未保存的更改。</p>
+        <div class="dialog-actions">
+          <button value="cancel">取消</button
+          ><button value="discard">不保存</button
+          ><button value="save" class="primary">保存</button>
+        </div>
+      </form>
+    </dialog>
+    <script src="main.js"></script>
+  </body>
 </html>

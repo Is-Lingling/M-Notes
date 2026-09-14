@@ -68,7 +68,7 @@ const {pathToFileURL} = require('node:url');
   }
  await page.screenshot({path:'/tmp/mnotes-selection.png'});
  await page.locator('.cm-code-header-widget').click({position:{x:60,y:10}});
- assert.equal(await page.evaluate(()=>editor._view.state.sliceDoc(editor._view.state.selection.main.from,editor._view.state.selection.main.to)), '```javascript\nconst first = 123;\nconst second = 456;\n```\n');
+ assert.equal(await page.evaluate(()=>editor._view.state.sliceDoc(editor._view.state.selection.main.from,editor._view.state.selection.main.to)), '```javascript\nconst first = 123;\nconst second = 456;\n```');
  await page.keyboard.press('Backspace');
  assert(!(await page.evaluate(()=>editor.getContent())).includes('const first'));
  await page.keyboard.press('Meta+z');
